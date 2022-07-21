@@ -9,7 +9,7 @@ import sys
 import time
 import curses
 
-import RPi.GPIO as GPIO
+import pigpio
 
 import board
 import adafruit_dht
@@ -18,76 +18,88 @@ import adafruit_dht
 # For RPM reading, it says there's two pulses per rotation
 # (https://noctua.at/pub/media/wysiwyg/Noctua_PWM_specifications_white_paper.pdf)
 PWM_FREQUENCY = 25000
-PULSES_PER_ROTATION = 2
-HZ_TO_RPM = 60 / PULSES_PER_ROTATION
+PULSES_PER_REVOLUTION = 2
 
 class Fan:
-    tally_time = 1
-
-    def __init__(self, name, rpm_pin, pwm_pin) -> None:
+    def __init__(self, name, pi, rpm_pin, pwm_pin, weighting=0.0, pulses_per_rev=1) -> None:
         self.name = name
+        self._pi = pi
         self.rpm_pin = rpm_pin
         self.pwm_pin = pwm_pin
         self._rpm = 0
         self._pwm = 100
-        self._pwm_device = None
-        self._ticks = 0
-        self._lastTallyTime = 0
+
+        # Watchdog: 200ms
+        self._watchdog = 200
+        
+        # Weighting is a number between 0 and 1 and indicates how much the old reading affects the 
+        # new reading. It defaults to 0 which means the old reading has no effect. This may be used
+        # to smooth the data. 
+        if weighting < 0.0:
+            weighting = 0.0
+        elif weighting > 0.99:
+            weighting = 0.99
+
+        self._old_value_weight = weighting
+        self._new_value_weight = 1.0 - weighting
+
+        self._pulses_per_rev = pulses_per_rev
 
         log(f"Setting up GPIOs for fan {self.name}...")
         log(f"   RPM pin: {self.rpm_pin}")
-        GPIO.setup(self.rpm_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        self._pi.set_mode(self.rpm_pin, pigpio.INPUT)
+        self._pi.set_pull_up_down(self.rpm_pin, pigpio.PUD_UP)
 
-        def rpm_callback(pin):
-            self.on_rpm_pin_falling_edge(pin)
-
-        GPIO.add_event_detect(self.rpm_pin, GPIO.FALLING, rpm_callback)
+        self._callback = self._pi.callback(self.rpm_pin, pigpio.FALLING_EDGE, self.on_rpm_pin_falling_edge)
+        self._pi.set_watchdog(self.rpm_pin, self._watchdog)
 
         log(f"   PWM pin: {self.pwm_pin}")
-        GPIO.setup(self.pwm_pin, GPIO.OUT, initial=GPIO.LOW)
-        self._pwm_device = GPIO.PWM(self.pwm_pin, PWM_FREQUENCY)
-        self._lastTallyTime = time.time()
-        self._pwm_device.start(self._pwm)
+        self._pi.set_mode(self.pwm_pin, pigpio.OUTPUT)
+        self._pi.set_PWM_frequency(self.pwm_pin, PWM_FREQUENCY)
+        self._pi.set_PWM_range(self.pwm_pin, 100)
+        self._pi.set_PWM_dutycycle(self.pwm_pin, self._pwm)
+
+        self._high_tick = None
+        self._period = None
 
     def stop(self):
-        if self._pwm_device:
-            self._pwm_device.stop()
-        GPIO.remove_event_detect(self.rpm_pin)
-
-    def __del__(self):
-        log(f"__del__ for fan {self.name}")
-        self.stop()
-        del self._pwm_device
+        self._pi.set_watchdog(self.rpm_pin, 0)
+        self._pi.set_PWM_dutycycle(self.pwm_pin, 0)
+        self._callback.cancel()
 
     def reset(self):
         self._rpm = 0
-        self._ticks = 0
-        self._lastTallyTime = 0
+        self._high_tick = None
+        self._period = None
 
-    def on_rpm_pin_falling_edge(self, pin):
-        if self.rpm_pin != pin:
-            raise RuntimeError("on_rpm_pin_falling_edge: rpm pin doesn't match")
+    def on_rpm_pin_falling_edge(self, pin, level, tick):
+        if level == 0: # Falling edge
+            if self._high_tick is not None:
+                t = pigpio.tickDiff(self._high_tick, tick)
+                if self._period is not None:
+                    self._period = (self._period * self._old_value_weight) + (t * self._new_value_weight)
+                else:
+                    self._period = t
+            self._high_tick = tick
 
-        self._ticks += 1
-        now = time.time()
-        dt = now - self._lastTallyTime
-        if dt > Fan.tally_time:
-            freq = self._ticks / dt
-            self._rpm = freq * HZ_TO_RPM
-            self._ticks = 0
-            self._lastTallyTime = now
-
+        elif level == 2: # Watchdog timeout
+            if self._period is not None:
+                if self._period < 2000000000:
+                    self._period += (self._watchdog * 1000)
 
     @property
     def rpm(self):
-        return self._rpm
+        rpm = 0.0
+        if self._period is not None:
+            rpm = 60000000.0 / (self._period * self._pulses_per_rev)
+        return rpm
 
     @property
     def pwm(self):
         return self._pwm
 
     def set_speed(self, speed):
-        self._pwm_device.ChangeDutyCycle(speed)
+        self._pi.set_PWM_dutycycle(self.pwm_pin, speed)
         self._pwm = speed
 
 
@@ -117,8 +129,7 @@ class TempHumiditySensor:
         except RuntimeError:
             pass
 
-    def __del__(self):
-        log(f"__del__ for temp {self._name}")
+    def stop(self):
         if self._device:
             self._device.exit()
 
@@ -136,78 +147,86 @@ class TempHumiditySensor:
 
 
 class PsuPin:
-    def __init__(self, name, pin, mode) -> None:
+    def __init__(self, name, pi, pin, mode) -> None:
         self._name = name
+        self._pi = pi
         self._pin = pin
         self._mode = mode
-        self._state = GPIO.LOW
+        self._state = 0
 
-        if self._mode == GPIO.IN:
-            GPIO.setup(self._pin, self._mode, pull_up_down=GPIO.PUD_DOWN)
+        if self._mode == pigpio.INPUT:
+            self._pi.set_mode(self._pin, pigpio.INPUT)
+            self._pi.set_pull_up_down(self._pin, pigpio.PUD_DOWN)
         else:
-            GPIO.setup(self._pin, self._mode, initial=GPIO.LOW)
+            self._pi.set_mode(self._pin, pigpio.OUTPUT)
+            self._pi.write(self._pin, 0)
 
     def update_state(self):
-        if self._mode == GPIO.OUT:
+        if self._mode == pigpio.OUTPUT:
             raise RuntimeError("update_state is invalid on an output pin")
 
-        self._state = GPIO.input(self._pin)
+        self._state = self._pi.read(self._pin)
+
+    def stop(self):
+        pass
 
     @property
     def state(self):
         return self._state
 
     def read(self):
-        if self._mode == GPIO.OUT:
+        if self._mode == pigpio.OUTPUT:
             raise RuntimeError("read is invalid on an output pin")
         return self._state
 
     def write(self, value):
-        if self._mode == GPIO.IN:
+        if self._mode == pigpio.INPUT:
             raise RuntimeError("write is invalid on an input pin")
 
-        GPIO.output(self._pin, value)
+        self._pi.write(self._pin, value)
         self._state = value
 
     def toggle(self):
-        if self._mode == GPIO.IN:
+        if self._mode == pigpio.INPUT:
             raise RuntimeError("toggle is invalid on an input pin")
 
-        new_state = GPIO.LOW if self._state else GPIO.HIGH
+        new_state = not self._state
         self.write(new_state)
 
 
 class Psu:
-    def __init__(self) -> None:
-        self.power_switch = PsuPin("ps_switch", 25, GPIO.OUT)
-        self.ps_ok = PsuPin("ps_ok", 27, GPIO.IN)
+    def __init__(self, pi) -> None:
+        self.power_switch = PsuPin("ps_switch", pi, 25, pigpio.OUTPUT)
+        self.ps_ok = PsuPin("ps_ok", pi, 27, pigpio.INPUT)
 
     def update_state(self):
         self.ps_ok.update_state()
 
+    def stop(self):
+        self.power_switch.stop()
+        self.ps_ok.stop()
 
 class Sensors:
     def __init__(self) -> None:
-        GPIO.setmode(GPIO.BCM)
-        #GPIO.setwarnings(False)
+        self._pi = pigpio.pi()
 
         self.fans = [
-            Fan("fan1", rpm_pin = 18, pwm_pin = 17),
-            Fan("fan2", rpm_pin = 23, pwm_pin = 24),
-            Fan("fan3", rpm_pin = 16, pwm_pin = 20),
+            Fan("fan1", self._pi, rpm_pin = 18, pwm_pin = 17, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION),
+            Fan("fan2", self._pi, rpm_pin = 23, pwm_pin = 24, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION),
+            Fan("fan3", self._pi, rpm_pin = 16, pwm_pin = 20, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION),
         ]
         self.temp = TempHumiditySensor("temp1", board.D21)
-        self.psu = Psu()
+        self.psu = Psu(self._pi)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        del self.psu
-        del self.temp
+        self.psu.stop()
+        self.temp.stop()
         for fan in self.fans:
             fan.stop()
-        GPIO.cleanup()
+        self._pi.stop()
 
     def update_state(self):
         self.temp.update_state()
