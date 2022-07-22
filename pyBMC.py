@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # pyBMC
 #
@@ -20,18 +21,17 @@ import adafruit_dht
 PWM_FREQUENCY = 25000
 PULSES_PER_REVOLUTION = 2
 
-class Fan:
-    def __init__(self, name, pi, rpm_pin, pwm_pin, weighting=0.0, pulses_per_rev=1) -> None:
-        self.name = name
+class RpmPin:
+    def __init__(self, pi, pin, weighting=0.0, pulses_per_rev=1) -> None:
         self._pi = pi
-        self.rpm_pin = rpm_pin
-        self.pwm_pin = pwm_pin
-        self._rpm = 0
-        self._pwm = 100
+        self._pin = pin
+        self._pulses_per_rev = pulses_per_rev
+        self._high_tick = None
+        self._period = None
 
         # Watchdog: 200ms
         self._watchdog = 200
-        
+
         # Weighting is a number between 0 and 1 and indicates how much the old reading affects the 
         # new reading. It defaults to 0 which means the old reading has no effect. This may be used
         # to smooth the data. 
@@ -43,34 +43,10 @@ class Fan:
         self._old_value_weight = weighting
         self._new_value_weight = 1.0 - weighting
 
-        self._pulses_per_rev = pulses_per_rev
-
-        log(f"Setting up GPIOs for fan {self.name}...")
-        log(f"   RPM pin: {self.rpm_pin}")
-        self._pi.set_mode(self.rpm_pin, pigpio.INPUT)
-        self._pi.set_pull_up_down(self.rpm_pin, pigpio.PUD_UP)
-
-        self._callback = self._pi.callback(self.rpm_pin, pigpio.FALLING_EDGE, self.on_rpm_pin_falling_edge)
-        self._pi.set_watchdog(self.rpm_pin, self._watchdog)
-
-        log(f"   PWM pin: {self.pwm_pin}")
-        self._pi.set_mode(self.pwm_pin, pigpio.OUTPUT)
-        self._pi.set_PWM_frequency(self.pwm_pin, PWM_FREQUENCY)
-        self._pi.set_PWM_range(self.pwm_pin, 100)
-        self._pi.set_PWM_dutycycle(self.pwm_pin, self._pwm)
-
-        self._high_tick = None
-        self._period = None
-
-    def stop(self):
-        self._pi.set_watchdog(self.rpm_pin, 0)
-        self._pi.set_PWM_dutycycle(self.pwm_pin, 0)
-        self._callback.cancel()
-
-    def reset(self):
-        self._rpm = 0
-        self._high_tick = None
-        self._period = None
+        self._pi.set_mode(self._pin, pigpio.INPUT)
+        self._pi.set_pull_up_down(self._pin, pigpio.PUD_UP)
+        self._callback = self._pi.callback(self._pin, pigpio.FALLING_EDGE, self.on_rpm_pin_falling_edge)
+        self._pi.set_watchdog(self._pin, self._watchdog)
 
     def on_rpm_pin_falling_edge(self, pin, level, tick):
         if level == 0: # Falling edge
@@ -87,6 +63,15 @@ class Fan:
                 if self._period < 2000000000:
                     self._period += (self._watchdog * 1000)
 
+    def stop(self):
+        self._pi.set_watchdog(self._pin, 0)
+        self._callback.cancel()
+        self._callback = None
+
+    def reset(self):
+        self._high_tick = None
+        self._period = None
+
     @property
     def rpm(self):
         rpm = 0.0
@@ -94,13 +79,58 @@ class Fan:
             rpm = 60000000.0 / (self._period * self._pulses_per_rev)
         return rpm
 
+
+class PwmPin:
+    def __init__(self, pi, pin) -> None:
+        self._pi = pi
+        self._pin = pin
+        self._duty_cycle = 100
+
+        self._pi.set_mode(self._pin, pigpio.OUTPUT)
+        self._pi.set_PWM_frequency(self._pin, PWM_FREQUENCY)
+        self._pi.set_PWM_range(self._pin, 100)
+        self._pi.set_PWM_dutycycle(self._pin, self._duty_cycle)
+
+    def stop(self):
+        self.set_duty_cycle(0)
+
     @property
-    def pwm(self):
-        return self._pwm
+    def duty_cycle(self):
+        return self._duty_cycle
+
+    def set_duty_cycle(self, value):
+        self._pi.set_PWM_dutycycle(self._pin, value)
+        self._duty_cycle = value
+
+
+class Fan:
+    def __init__(self, name, pi, rpm_pin, pwm_pin, weighting=0.0, pulses_per_rev=1) -> None:
+        self.name = name
+
+        log(f"Setting up GPIOs for fan {self.name}...")
+        log(f"   RPM pin: {rpm_pin}")
+        self.rpm_pin = RpmPin(pi, rpm_pin, weighting, pulses_per_rev)
+
+        log(f"   PWM pin: {pwm_pin}")
+        self.pwm_pin = PwmPin(pi, pwm_pin)
+
+    def stop(self):
+        self.rpm_pin.stop()
+        self.pwm_pin.stop()
+
+    def reset(self):
+        self.rpm_pin.reset()
+
+    @property
+    def rpm(self):
+        return self.rpm_pin.rpm
+
+    @property
+    def duty_cycle(self):
+        return self.pwm_pin.duty_cycle
 
     def set_speed(self, speed):
-        self._pi.set_PWM_dutycycle(self.pwm_pin, speed)
-        self._pwm = speed
+        self.pwm_pin.set_duty_cycle(speed)
 
 
 class TempHumiditySensor:
@@ -265,11 +295,11 @@ def console(stdscr, sensors):
 
         stdscr.addstr(0, 40, "  PyBMC v0.1  ", curses.A_REVERSE)
         stdscr.addstr(2,  9, f" Fan 1 speed: {int(fans[0].rpm)} rpm  ")
-        stdscr.addstr(3,  9, f" Fan 1 PWM: {fans[0].pwm}%  ", curses.A_REVERSE if selected_fan == 0 else curses.A_NORMAL)
+        stdscr.addstr(3,  9, f" Fan 1 PWM: {fans[0].duty_cycle}%  ", curses.A_REVERSE if selected_fan == 0 else curses.A_NORMAL)
         stdscr.addstr(2, 39, f" Fan 2 speed: {int(fans[1].rpm)} rpm  ")
-        stdscr.addstr(3, 39, f" Fan 2 PWM: {fans[1].pwm}%  ", curses.A_REVERSE if selected_fan == 1 else curses.A_NORMAL)
+        stdscr.addstr(3, 39, f" Fan 2 PWM: {fans[1].duty_cycle}%  ", curses.A_REVERSE if selected_fan == 1 else curses.A_NORMAL)
         stdscr.addstr(2, 69, f" Fan 3 speed: {int(fans[2].rpm)} rpm  ")
-        stdscr.addstr(3, 69, f" Fan 3 PWM: {fans[2].pwm}%  ", curses.A_REVERSE if selected_fan == 2 else curses.A_NORMAL)
+        stdscr.addstr(3, 69, f" Fan 3 PWM: {fans[2].duty_cycle}%  ", curses.A_REVERSE if selected_fan == 2 else curses.A_NORMAL)
 
         stdscr.addstr(5, 10, f"Temperature: {temp.temperature_c:.1f}C ({temp.temperature_f:.1f}F)")
         stdscr.addstr(6, 10, f"Humidity: {temp.humidity}%")
@@ -287,13 +317,13 @@ def console(stdscr, sensors):
         elif c == curses.KEY_LEFT:
             selected_fan = selected_fan - 1 if selected_fan > 0 else 0
         elif c == curses.KEY_UP:
-            pwm = fans[selected_fan].pwm
-            pwm = pwm + 10 if pwm < 100 else 100
-            fans[selected_fan].set_speed(pwm)
+            duty_cycle = fans[selected_fan].duty_cycle
+            duty_cycle = duty_cycle + 10 if duty_cycle < 100 else 100
+            fans[selected_fan].set_speed(duty_cycle)
         elif c == curses.KEY_DOWN:
-            pwm = fans[selected_fan].pwm
-            pwm = pwm - 10 if pwm > 0 else 0
-            fans[selected_fan].set_speed(pwm)
+            duty_cycle = fans[selected_fan].duty_cycle
+            duty_cycle = duty_cycle - 10 if duty_cycle > 0 else 0
+            fans[selected_fan].set_speed(duty_cycle)
         elif c == ord('t') or c == ord('T'):
             pass
         elif c != curses.ERR:
