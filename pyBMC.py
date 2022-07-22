@@ -11,9 +11,7 @@ import time
 import curses
 
 import pigpio
-
-import board
-import adafruit_dht
+import DHT22
 
 # Noctua specifies 25Khz frequency for PWM control.
 # For RPM reading, it says there's two pulses per rotation
@@ -134,7 +132,7 @@ class Fan:
 
 
 class TempHumiditySensor:
-    def __init__(self, name, pin) -> None:
+    def __init__(self, name, pi, pin) -> None:
         self._name = name
         self._pin = pin
         self._temp_c = 0
@@ -142,15 +140,16 @@ class TempHumiditySensor:
         self._humidity = 0
 
         log(f"Setting up GPIOs for temp sensor {self._name}...")
-        self._device = adafruit_dht.DHT22(self._pin)
+        self._device = DHT22.sensor(pi, pin)
 
     def update_state(self):
+        self._device.update_state()
         try:
-            temp_c = self._device.temperature
+            temp_c = self._device.temperature()
             temp_f = 0
             if temp_c:
                 temp_f = 32 + temp_c * 9 / 5
-            humidity = self._device.humidity
+            humidity = self._device.humidity()
 
             if temp_c is not None and temp_f is not None and humidity is not None :
                 self._temp_c = temp_c
@@ -160,8 +159,7 @@ class TempHumiditySensor:
             pass
 
     def stop(self):
-        if self._device:
-            self._device.exit()
+        self._device.cancel()
 
     @property
     def temperature_c(self):
@@ -245,7 +243,7 @@ class Sensors:
             Fan("fan2", self._pi, rpm_pin = 23, pwm_pin = 24, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION),
             Fan("fan3", self._pi, rpm_pin = 16, pwm_pin = 20, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION),
         ]
-        self.temp = TempHumiditySensor("temp1", board.D21)
+        self.temp = TempHumiditySensor("temp1", self._pi, 21)
         self.psu = Psu(self._pi)
 
     def __enter__(self):
@@ -302,7 +300,7 @@ def console(stdscr, sensors):
         stdscr.addstr(3, 69, f" Fan 3 PWM: {fans[2].duty_cycle}%  ", curses.A_REVERSE if selected_fan == 2 else curses.A_NORMAL)
 
         stdscr.addstr(5, 10, f"Temperature: {temp.temperature_c:.1f}C ({temp.temperature_f:.1f}F)")
-        stdscr.addstr(6, 10, f"Humidity: {temp.humidity}%")
+        stdscr.addstr(6, 10, f"Humidity: {temp.humidity:.1f}%")
 
         psu_state = "on" if psu.ps_ok.state else "off"
         stdscr.addstr(8, 10, f"PSU Ok: {psu_state} ")
