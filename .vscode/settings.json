@@ -1,0 +1,12 @@
+{
+    "njpPush.ignoreGlobs": [
+        "**/.DS_Store",
+        "**/Thumbs.db",
+        "**/desktop.ini",
+        "**/.git/*",
+        "**/.svn/*",
+        "**/venv/*",
+        "**/__pycache__/*"
+    ],
+    "njpPush.autoUploadQueue": true
+}

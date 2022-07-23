@@ -1,0 +1,33 @@
+// Push settings file - first generated on Fri Jul 22 2022 16:23:38 GMT-0700 (Pacific Daylight Time).
+// Note: Optional items are commented out and can be uncommented if you wish to set them.
+// Preset environments are: prod, dev, stage. Custom environments (and their colours) can be created in settings.
+{
+	"env": "dev",
+	"dev": {
+		"service": "SFTP",
+		"options": {
+			// "timeZoneOffset": 0,
+			// "testCollisionTimeDiffs": true,
+			// "collisionUploadAction": null,
+			// "collisionDownloadAction": null,
+			// "followSymlinks": false,
+			// "reminder": true,
+			// "reminderTimeout": null,
+			"host": "pyBMC.kraychete.com",
+			// "port": 22,
+			"username": "pi",
+			// "password": "",
+			// "privateKey": "",
+			// "keyPassphrase": "",
+			"root": "/home/pi/pyBMC",
+			// "keepaliveInterval": 3000,
+			// "debug": false,
+			// "fileMode": "",
+			// "sshGateway": null,
+			// "ignoreGlobs": [
+			// 	"**/.git/*",
+			// 	"**/venv/*"
+			// ]
+		}
+	}
+}
