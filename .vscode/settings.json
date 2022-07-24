@@ -8,5 +8,7 @@
         "**/venv/*",
         "**/__pycache__/*"
     ],
-    "njpPush.autoUploadQueue": true
+    "njpPush.autoUploadQueue": true,
+    "njpPush.queueWatchedFiles": true,
+    "njpPush.persistWatchers": true
 }

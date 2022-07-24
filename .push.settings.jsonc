@@ -12,6 +12,7 @@
 			// "collisionDownloadAction": null,
 			// "followSymlinks": false,
 			// "reminder": true,
+			"reminder": false,
 			// "reminderTimeout": null,
 			"host": "pyBMC.kraychete.com",
 			// "port": 22,
@@ -23,11 +24,7 @@
 			// "keepaliveInterval": 3000,
 			// "debug": false,
 			// "fileMode": "",
-			// "sshGateway": null,
-			// "ignoreGlobs": [
-			// 	"**/.git/*",
-			// 	"**/venv/*"
-			// ]
+			// "sshGateway": null
 		}
 	}
 }
