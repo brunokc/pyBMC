@@ -129,13 +129,13 @@ class Fan:
 
 class TempHumiditySensor:
     def __init__(self, name, pi, pin) -> None:
-        self._name = name
+        self.name = name
         self._pin = pin
         self._temp_c = 0
         self._temp_f = 0
         self._humidity = 0
 
-        logger.log(f"Setting up GPIOs for temp sensor {self._name}...")
+        logger.log(f"Setting up GPIOs for temp sensor {self.name}...")
         self._device = DHT22.sensor(pi, pin)
 
     def update_state(self):
