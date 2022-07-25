@@ -9,11 +9,78 @@
 import sys
 import time
 import curses
+import requests
+import json
+from collections import namedtuple
 
-from Sensors import *
+import logger
 
-def log(*args):
-    print(*args)
+HOST = "127.0.0.1"
+PORT = 5000
+
+class SensorClient:
+    def __init__(self, host, port):
+        self._host = host
+        self._port = port
+        self._base_uri = f"http://{host}:{port}"
+        self.update_state()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def update_state(self):
+        response = requests.get(self._base_uri + "/api/v1/state")
+        state = response.json()
+
+        resp_str = json.dumps(state, indent = 2)
+        logger.log(f"response: {resp_str}")
+
+        self._fans = []
+        fans = state["fans"]
+        for i in range(len(fans)):
+            fan = self._build_fan(fans[i])
+            self._fans.append(fan)
+
+        self._temp = self._build_temp(state["tempSensor"])
+        self._psu = self._build_psu(state["psu"])
+
+    @property
+    def fans(self):
+        return self._fans
+
+    @property
+    def temp(self):
+        return self._temp
+
+    @property
+    def psu(self):
+        return self._psu
+
+    def _build_fan(self, fan):
+        base_uri = self._base_uri
+        def set_speed(self, speed):
+            if speed < 0 or speed > 100:
+                raise RuntimeError(f"invalid fan speed {speed}")
+
+            data = { "dutyCycle": speed }
+            requests.patch(base_uri + f"/api/v1/fan/{self.id}", json = data)
+
+        Fan = namedtuple("Fan", fan.keys())
+        Fan.set_speed = set_speed
+        return Fan(**fan)
+
+    @staticmethod
+    def _build_temp(temp):
+        TemperatureHumiditySensor = namedtuple("TemperatureHumiditySensor", temp.keys())
+        return TemperatureHumiditySensor(**temp)
+
+    @staticmethod
+    def _build_psu(psu):
+        Psu = namedtuple("Psu", psu.keys())
+        return Psu(**psu)
 
 def console(stdscr, sensors):
     # Hide cursor
@@ -25,10 +92,6 @@ def console(stdscr, sensors):
     sensor_update_time = 0.2
     wait_time = 0.05
 
-    fans = sensors.fans
-    temp = sensors.temp
-    psu = sensors.psu
-
     accumulated_time = 0
     while True:
         accumulated_time += wait_time
@@ -36,18 +99,21 @@ def console(stdscr, sensors):
             sensors.update_state()
             accumulated_time = 0
 
+        fans = sensors.fans
         stdscr.addstr(0, 40, "  PyBMC v0.1  ", curses.A_REVERSE)
         stdscr.addstr(2,  9, f" Fan 1 speed: {int(fans[0].rpm)} rpm  ")
-        stdscr.addstr(3,  9, f" Fan 1 PWM: {fans[0].duty_cycle}%  ", curses.A_REVERSE if selected_fan == 0 else curses.A_NORMAL)
+        stdscr.addstr(3,  9, f" Fan 1 PWM: {fans[0].dutyCycle}%  ", curses.A_REVERSE if selected_fan == 0 else curses.A_NORMAL)
         stdscr.addstr(2, 39, f" Fan 2 speed: {int(fans[1].rpm)} rpm  ")
-        stdscr.addstr(3, 39, f" Fan 2 PWM: {fans[1].duty_cycle}%  ", curses.A_REVERSE if selected_fan == 1 else curses.A_NORMAL)
+        stdscr.addstr(3, 39, f" Fan 2 PWM: {fans[1].dutyCycle}%  ", curses.A_REVERSE if selected_fan == 1 else curses.A_NORMAL)
         stdscr.addstr(2, 69, f" Fan 3 speed: {int(fans[2].rpm)} rpm  ")
-        stdscr.addstr(3, 69, f" Fan 3 PWM: {fans[2].duty_cycle}%  ", curses.A_REVERSE if selected_fan == 2 else curses.A_NORMAL)
+        stdscr.addstr(3, 69, f" Fan 3 PWM: {fans[2].dutyCycle}%  ", curses.A_REVERSE if selected_fan == 2 else curses.A_NORMAL)
 
-        stdscr.addstr(5, 10, f"Temperature: {temp.temperature_c:.1f}C ({temp.temperature_f:.1f}F)")
+        temp = sensors.temp
+        stdscr.addstr(5, 10, f"Temperature: {temp.temperatureC:.1f}C ({temp.temperatureF:.1f}F)")
         stdscr.addstr(6, 10, f"Humidity: {temp.humidity:.1f}%")
 
-        psu_state = "on" if psu.ps_ok.state else "off"
+        psu = sensors.psu
+        psu_state = "on" if psu.powerState else "off"
         stdscr.addstr(8, 10, f"PSU Ok: {psu_state} ")
 
         stdscr.refresh()
@@ -60,11 +126,11 @@ def console(stdscr, sensors):
         elif c == curses.KEY_LEFT:
             selected_fan = selected_fan - 1 if selected_fan > 0 else 0
         elif c == curses.KEY_UP:
-            duty_cycle = fans[selected_fan].duty_cycle
+            duty_cycle = fans[selected_fan].dutyCycle
             duty_cycle = duty_cycle + 10 if duty_cycle < 100 else 100
             fans[selected_fan].set_speed(duty_cycle)
         elif c == curses.KEY_DOWN:
-            duty_cycle = fans[selected_fan].duty_cycle
+            duty_cycle = fans[selected_fan].dutyCycle
             duty_cycle = duty_cycle - 10 if duty_cycle > 0 else 0
             fans[selected_fan].set_speed(duty_cycle)
         elif c == ord('t') or c == ord('T'):
@@ -77,17 +143,17 @@ def console(stdscr, sensors):
 
 def dump_data(sensors):
     fans = sensors.fans
-    log(f"Fan 1: {int(fans[0].rpm)} rpm")
-    log(f"Fan 2: {int(fans[1].rpm)} rpm")
-    log(f"Fan 3: {int(fans[2].rpm)} rpm")
+    logger.log(f"Fan 1: {int(fans[0].rpm)} rpm")
+    logger.log(f"Fan 2: {int(fans[1].rpm)} rpm")
+    logger.log(f"Fan 3: {int(fans[2].rpm)} rpm")
 
     temp = sensors.temp
-    log(f"Temperature: {temp.temperature_c:.1f}C ({temp.temperature_f:.1f}F)")
-    log(f"Humidity: {temp.humidity}%")
+    logger.log(f"Temperature: {temp.temperature_c:.1f}C ({temp.temperature_f:.1f}F)")
+    logger.log(f"Humidity: {temp.humidity}%")
 
     psu_state = "on" if sensors.psu.ps_ok.state else "off"
-    log(f"PSU Ok: {psu_state}")
-    log()
+    logger.log(f"PSU Ok: {psu_state}")
+    logger.log()
 
 def text_console(sensors):
     sensors.psu.power_switch.toggle()
@@ -97,11 +163,11 @@ def text_console(sensors):
         time.sleep(1)
 
 def main():
-    with Sensors() as sensors:
-        if len(sys.argv) == 2 and sys.argv[1] == "console":
-            curses.wrapper(console, sensors)
-        else:
+    with SensorClient(HOST, PORT) as sensors:
+        if len(sys.argv) == 2 and sys.argv[1] == "debug":
             text_console(sensors)
+        else:
+            curses.wrapper(console, sensors)
 
 if __name__ == "__main__":
     main()

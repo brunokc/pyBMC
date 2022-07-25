@@ -2,7 +2,7 @@
 import os
 
 from flask import Flask, request
-from . import Sensors, logger
+from . import Sensors
 
 sensors = Sensors.Sensors()
 
@@ -74,7 +74,8 @@ def create_app(test_config=None):
             return build_fan(fan_id)
 
         elif request.method == "PATCH":
-            new_duty_cycle = int(request.form["dutyCycle"])
+            data = request.get_json()
+            new_duty_cycle = data["dutyCycle"]
             if new_duty_cycle < 0 or new_duty_cycle > 100:
                 return "Invalid duty cycle", 400
 
@@ -98,8 +99,15 @@ def create_app(test_config=None):
             return build_psu()
 
         elif request.method == "PATCH":
-            new_state = request.form["powerState"]
-            #return f"power_switch[put]: new_state = {new_state}"
+            data = request.get_json()
+            new_state = data["powerState"]
+            valid_on_values = [1, True, "on"]
+            valid_off_values = [0, False, "off"]
+            if new_state not in valid_on_values and new_state not in valid_off_values:
+                return "Invalid power state", 400
+
+            # Convert to boolean
+            new_state = (new_state in valid_on_values)
             sensors.psu.power_switch.write(new_state)
 
     return app
