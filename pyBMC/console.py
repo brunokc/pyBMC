@@ -109,7 +109,8 @@ def console(stdscr, sensors):
         stdscr.addstr(3, 69, f" Fan 3 PWM: {fans[2].dutyCycle}%  ", curses.A_REVERSE if selected_fan == 2 else curses.A_NORMAL)
 
         temp = sensors.temp
-        stdscr.addstr(5, 10, f"Temperature: {temp.temperatureC:.1f}C ({temp.temperatureF:.1f}F)")
+        temperatureF = 32 + temp.temperatureC * 9 / 5
+        stdscr.addstr(5, 10, f"Temperature: {temp.temperatureC:.1f}C ({temperatureF:.1f}F)")
         stdscr.addstr(6, 10, f"Humidity: {temp.humidity:.1f}%")
 
         psu = sensors.psu

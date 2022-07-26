@@ -40,7 +40,6 @@ def create_app(test_config=None):
             "id": 0,
             "name": temp.name,
             "temperatureC": temp.temperature_c,
-            "temperatureF": temp.temperature_f,
             "humidity": temp.humidity
         }
 

@@ -132,7 +132,6 @@ class TempHumiditySensor:
         self.name = name
         self._pin = pin
         self._temp_c = 0
-        self._temp_f = 0
         self._humidity = 0
 
         logger.log(f"Setting up GPIOs for temp sensor {self.name}...")
@@ -142,14 +141,10 @@ class TempHumiditySensor:
         self._device.update_state()
         try:
             temp_c = self._device.temperature()
-            temp_f = 0
-            if temp_c:
-                temp_f = 32 + temp_c * 9 / 5
             humidity = self._device.humidity()
 
-            if temp_c is not None and temp_f is not None and humidity is not None :
+            if temp_c is not None and humidity is not None :
                 self._temp_c = temp_c
-                self._temp_f = temp_f
                 self._humidity = humidity
         except RuntimeError:
             pass
@@ -160,10 +155,6 @@ class TempHumiditySensor:
     @property
     def temperature_c(self):
         return self._temp_c
-
-    @property
-    def temperature_f(self):
-        return self._temp_f
 
     @property
     def humidity(self):
