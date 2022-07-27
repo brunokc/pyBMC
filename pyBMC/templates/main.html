@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en-us">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>pyBMC</title>
+  <link rel="stylesheet" href="/static/style.css">
+
+  <!-- Latest Bootstrap 5 CSS and JavaScript -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
+  </script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+
+  <!-- Gauge code from https://bernii.github.io/gauge.js/ -->
+  <script src="/static/gauge.min.js"></script>
+</head>
+<body style="background-color: #e8e8e8;">
+  <nav class="navbar navbar-light bg-light">
+    <div class="container-fluid">
+      <span class="navbar-brand mb-0 h1">pyBMC v0.1</span>
+      <form class="d-flex form-switch">
+        <input id="auto-refresh-switch" class="form-check-input me-2" type="checkbox" role="switch" checked>
+        <label class="form-check-label" for="auto-refresh-switch">Auto-Refresh</label>
+      </form>
+    </div>
+  </nav>
+
+  <div class="d-flex flex-row flex-wrap justify-content-evenly rounded mx-2 my-3 p-3 shadow-sm">
+    <div>
+      <div id="fan1-text" class="gauge-text text-center"></div>
+      <canvas id="fan1-gauge"></canvas>
+      <h5 class="text-center"><i class="bi bi-fan"></i>&nbsp;Fan 1</h5>
+      <div class="ps-5">
+        <label for="fan1-speed-control">Power:</label>
+        <input id="fan1-speed-control" type="range" min="0" max="100" value="100"
+          class="fan-speed-control align-middle" data-fan-id="1">
+        <span id="fan1-range" class="fan-speed-control-text">100%</span>
+      </div>
+    </div>
+    <div>
+      <div id="fan2-text" class="gauge-text text-center"></div>
+      <canvas id="fan2-gauge"></canvas>
+      <h5 class="text-center"><i class="bi bi-fan"></i>&nbsp;Fan 2</h5>
+      <div class="ps-5">
+        <label for="fan2-speed-control">Power:</label>
+        <input id="fan2-speed-control" type="range" min="0" max="100" value="100"
+          class="fan-speed-control align-middle" data-fan-id="2">
+        <span id="fan2-range" class="fan-speed-control-text">100%</span>
+      </div>
+    </div>
+    <div>
+      <div id="fan3-text" class="gauge-text text-center"></div>
+      <canvas id="fan3-gauge"></canvas>
+      <h5 class="text-center"><i class="bi bi-fan"></i>&nbsp;Fan 3</h5>
+      <div class="ps-5">
+        <label for="fan3-speed-control">Power:</label>
+        <input id="fan3-speed-control" type="range" min="0" max="100" value="100"
+          class="fan-speed-control align-middle" data-fan-id="3">
+        <span id="fan3-range" class="fan-speed-control-text">100%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex flex-row rounded mx-2 my-3 p-3 shadow-sm">
+    <div class="flex-column">
+      Temperature:
+      <span class="h6">
+        <span id="tempC">0.0</span>C<i class="bi bi-thermometer-half"></i>
+        (<span id="tempF">0.0</span>F<i class="bi bi-thermometer-half"></i>)
+      </span>
+      <br>
+      Humidity:
+      <span class="h6">
+        <span id="humidity">0.0</span>%
+        <i class="bi bi-droplet-half"></i>
+      </span>
+    </div>
+  </div>
+
+  <div class="d-flex flex-row rounded mx-2 my-3 p-3 shadow-sm">
+    <div class="flex-column">
+      <div class="form-check form-switch">
+        <!-- <span>PSU Power State:</span> -->
+        <input class="form-check-input" type="checkbox" role="switch" id="power-state">
+        <label class="form-check-label" for="power-state"><i class="bi bi-power"></i>&nbsp;PSU Power</label>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/main.js"></script>
+</body>
+</html>

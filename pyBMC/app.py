@@ -1,7 +1,7 @@
 
 import os
 
-from flask import Flask, request
+from flask import Flask, request, render_template
 from . import Sensors
 
 sensors = Sensors.Sensors()
@@ -108,5 +108,9 @@ def create_app(test_config=None):
             # Convert to boolean
             new_state = (new_state in valid_on_values)
             sensors.psu.power_switch.write(new_state)
+
+    @app.route("/")
+    def index():
+        return render_template("main.html")
 
     return app

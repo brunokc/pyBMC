@@ -1,0 +1,32 @@
+
+body {
+    background-color: lightgray;
+}
+
+.d-flex {
+    background-color: white;
+}
+
+canvas {
+    width: 300px;
+    height: 200px;
+}
+
+.gauge-text {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.fan-speed-control {
+    /* appearance: none; */
+    /* width: 35%; Full-width */
+    height: 25px; /* Specified height */
+    background: #d3d3d3; /* Grey background */
+    outline: none;
+    opacity: 0.7;
+    transition: opacity .2s;
+}
+
+.fan-speed-control:hover {
+    opacity: 1;
+}
