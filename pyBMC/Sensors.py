@@ -226,7 +226,7 @@ class Sensors:
     def __init__(self) -> None:
         self._pi = pigpio.pi()
 
-        fans_data = [
+        case_fans_data = [
             {
                 "id": 0,
                 "rpm_pin": 18,
@@ -244,14 +244,14 @@ class Sensors:
             },
         ]
 
-        self.fans = []
-        for fan_data in fans_data:
+        self.case_fans = []
+        for fan_data in case_fans_data:
             id = fan_data["id"]
             name = f"fan{id}"
             rpm_pin = fan_data["rpm_pin"]
             pwm_pin = fan_data["pwm_pin"]
             fan = Fan(id, name, self._pi, rpm_pin, pwm_pin, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION)
-            self.fans.append(fan)
+            self.case_fans.append(fan)
 
         self.temp = TempHumiditySensor("temp1", self._pi, 21)
         self.psu = Psu(self._pi)
@@ -259,7 +259,7 @@ class Sensors:
     def stop(self):
         self.psu.stop()
         self.temp.stop()
-        for fan in self.fans:
+        for fan in self.case_fans:
             fan.stop()
         self._pi.stop()
 
@@ -276,5 +276,5 @@ class Sensors:
         # If power is not on, we need to manually reset the state of the fans
         # as we haven't had a chance to do that since the power was cut
         if not self.psu.ps_ok.state:
-            for fan in self.fans:
+            for fan in self.case_fans:
                 fan.reset()

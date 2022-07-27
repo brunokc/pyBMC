@@ -27,7 +27,7 @@ def create_app(test_config=None):
         pass
 
     def build_fan(index):
-        fan = sensors.fans[index]
+        fan = sensors.case_fans[index]
         return {
             "id": fan.id,
             "name": fan.name,
@@ -55,7 +55,7 @@ def create_app(test_config=None):
         data = { }
 
         fan_data = []
-        for i in range(len(sensors.fans)):
+        for i in range(len(sensors.case_fans)):
             fan_data.append(build_fan(i))
 
         data.update({
