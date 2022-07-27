@@ -39,6 +39,22 @@
         <input class="form-check-input" type="checkbox" role="switch" id="power-state">
         <label class="form-check-label" for="power-state"><i class="bi bi-power"></i>&nbsp;PSU Power</label>
       </div>
+      <div>
+        CPU Temperature:
+        <span class="h6">
+          <span id="cpuTempC">0.0</span>C<i class="bi bi-thermometer-half"></i>
+          (<span id="cpuTempF">0.0</span>F<i class="bi bi-thermometer-half"></i>)
+        </span>
+      </div>
+      <div>
+        Total Memory: <span class="h6"><span id="totalMem">0</span>MB</span>
+      </div>
+      <div>
+        Throttled: <span class="h6"><span id="throttled">No</span></span>
+      </div>
+      <div>
+        Uptime: <span class="h6"><span id="uptime"></span></span>
+      </div>
     </div>
   </div>
 

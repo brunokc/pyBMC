@@ -66,11 +66,40 @@
         });
     }
 
+    async function update_system() {
+        const bmcUri = location.origin + "/api/v1/bmc";
+        const response = await fetch(bmcUri);
+        const bmc = await response.json();
+        // console.log(mc);
+
+        const cpuTempC = document.getElementById("cpuTempC");
+        const cpuTempF = document.getElementById("cpuTempF");
+        const tempInF = 32 + bmc.systemInfo.cpuTemp * 9 / 5;
+        cpuTempC.innerText = bmc.systemInfo.cpuTemp.toFixed(1);
+        cpuTempF.innerText = tempInF.toFixed(1);
+
+        const totalMem = document.getElementById("totalMem");
+        totalMem.innerText = bmc.systemInfo.totalMem;
+
+        const throttled = document.getElementById("throttled");
+        const wasThrottled = (bmc.systemInfo.throttled & 0x40000);
+        if (wasThrottled) {
+            throttled.innerText = "Yes";
+            throttled.classList.add("text-danger");
+        } else {
+            throttled.innerText = "No";
+            throttled.classList.remove("text-danger");
+        }
+
+        const uptime = document.getElementById("uptime");
+        uptime.innerText = bmc.systemInfo.uptime;
+    }
+
     async function update_state() {
         const stateUri = location.origin + "/api/v1/state";
         const response = await fetch(stateUri);
         const state = await response.json();
-        console.log(state);
+        // console.log(state);
 
         for (var i = 0; i < state.fans.length; ++i) {
             const fan = state.fans[i];
@@ -101,11 +130,16 @@
         });
     });
 
+    async function performUpdates() {
+        await update_system();
+        await update_state();
+    }
+
     const autoRefresh = document.getElementById("auto-refresh-switch");
     let intervalToken = null;
     function startAutoRefresh() {
         setTimeout(() => {
-            intervalToken = setInterval(update_state, 250);
+            intervalToken = setInterval(performUpdates, 250);
         }, 200);
     }
 

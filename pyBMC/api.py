@@ -1,6 +1,6 @@
 
 from flask import Blueprint, request
-from . import Sensors
+from . import Sensors, rpi
 
 sensors = Sensors.Sensors()
 
@@ -28,6 +28,10 @@ def build_psu():
     return {
         "powerState": sensors.psu.ps_ok.state
     }
+
+@bp.route("/bmc")
+def system():
+    return rpi.get_system_info()
 
 @bp.route("/state")
 def get_state():
