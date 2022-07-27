@@ -33,12 +33,14 @@
   </nav>
 
   <div class="d-flex flex-column rounded shadow-sm mx-2 my-3">
-    <div class="rounded-top p-2 text-white bg-dark bg-gradient">System</div>
-    <div class="p-3">
+    <div class="d-flex flex-row rounded-top p-2 text-white bg-dark bg-gradient">
+      <span class="flex-grow-1">System</span>
       <div class="form-check form-switch">
         <input class="form-check-input" type="checkbox" role="switch" id="power-state">
         <label class="form-check-label" for="power-state"><i class="bi bi-power"></i>&nbsp;PSU Power</label>
       </div>
+    </div>
+    <div class="p-3">
       <div>
         Model: <span class="h6"><span id="model"></span></span>
       </div>
