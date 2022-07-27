@@ -72,14 +72,17 @@
         const bmc = await response.json();
         // console.log(mc);
 
+        const model = document.getElementById("model");
+        model.innerText = bmc.systemInfo.model;
+
+        const totalMem = document.getElementById("totalMem");
+        totalMem.innerText = bmc.systemInfo.totalMem;
+
         const cpuTempC = document.getElementById("cpuTempC");
         const cpuTempF = document.getElementById("cpuTempF");
         const tempInF = 32 + bmc.systemInfo.cpuTemp * 9 / 5;
         cpuTempC.innerText = bmc.systemInfo.cpuTemp.toFixed(1);
         cpuTempF.innerText = tempInF.toFixed(1);
-
-        const totalMem = document.getElementById("totalMem");
-        totalMem.innerText = bmc.systemInfo.totalMem;
 
         const throttled = document.getElementById("throttled");
         const wasThrottled = (bmc.systemInfo.throttled & 0x40000);

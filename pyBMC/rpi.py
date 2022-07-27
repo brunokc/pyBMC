@@ -4,7 +4,6 @@ import re
 from . import logger
 
 def run_command(cmd):
-    # logger.log(f"Running {cmd}")
     output = subprocess.check_output(cmd, stderr = subprocess.PIPE).decode("utf-8")
     return output
 
@@ -50,23 +49,28 @@ def get_system_info():
             "name": "uptime",
             "cmd": "uptime",
             "re": re.compile("up\s(\d+\sdays,\s+\d+\:\d+)"),
+        },
+        {
+            "name": "model",
+            "cmd": ["cat", "/proc/cpuinfo"],
+            "re": re.compile("Model\s+:\s(.+)"),
         }
     ]
 
     systemInfo = {}
     for cmd in commands:
-        logger.log(f"Command: {cmd['cmd']}")
+        # logger.log(f"Command: {cmd['cmd']}")
         output = run_command(cmd["cmd"])
-        logger.log(f"Output: {output}")
+        # logger.log(f"Output: {output}")
         for line in output.splitlines():
-            logger.log(f"Line: {line}")
+            # logger.log(f"Line: {line}")
             match = cmd["re"].search(line)
             if match:
                 value = match.group(1)
-                logger.log(f"Value: {value}")
+                # logger.log(f"Value: {value}")
                 if "converter" in cmd and cmd["converter"]:
                     value = cmd["converter"](value)
-                    logger.log(f"Converted value: {value}")
+                    # logger.log(f"Converted value: {value}")
                 systemInfo[cmd["name"]] = value
                 break
 
