@@ -98,7 +98,8 @@ class PwmPin:
 
 
 class Fan:
-    def __init__(self, name, pi, rpm_pin, pwm_pin, weighting=0.0, pulses_per_rev=1) -> None:
+    def __init__(self, id, name, pi, rpm_pin, pwm_pin, weighting=0.0, pulses_per_rev=1) -> None:
+        self.id = id
         self.name = name
 
         logger.log(f"Setting up GPIOs for fan {self.name}...")
@@ -225,11 +226,33 @@ class Sensors:
     def __init__(self) -> None:
         self._pi = pigpio.pi()
 
-        self.fans = [
-            Fan("fan1", self._pi, rpm_pin = 18, pwm_pin = 17, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION),
-            Fan("fan2", self._pi, rpm_pin = 23, pwm_pin = 24, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION),
-            Fan("fan3", self._pi, rpm_pin = 16, pwm_pin = 20, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION),
+        fans_data = [
+            {
+                "id": 0,
+                "rpm_pin": 18,
+                "pwm_pin": 17
+            },
+            {
+                "id": 1,
+                "rpm_pin": 23,
+                "pwm_pin": 24
+            },
+            {
+                "id": 2,
+                "rpm_pin": 16,
+                "pwm_pin": 20
+            },
         ]
+
+        self.fans = []
+        for fan_data in fans_data:
+            id = fan_data["id"]
+            name = f"fan{id}"
+            rpm_pin = fan_data["rpm_pin"]
+            pwm_pin = fan_data["pwm_pin"]
+            fan = Fan(id, name, self._pi, rpm_pin, pwm_pin, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION)
+            self.fans.append(fan)
+
         self.temp = TempHumiditySensor("temp1", self._pi, 21)
         self.psu = Psu(self._pi)
 

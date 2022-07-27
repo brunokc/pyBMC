@@ -3,6 +3,7 @@ import os
 
 from flask import Flask, request, render_template
 from . import Sensors
+from . import version
 
 sensors = Sensors.Sensors()
 
@@ -28,7 +29,7 @@ def create_app(test_config=None):
     def build_fan(index):
         fan = sensors.fans[index]
         return {
-            "id": index,
+            "id": fan.id,
             "name": fan.name,
             "rpm": fan.rpm,
             "dutyCycle": fan.duty_cycle
@@ -37,7 +38,7 @@ def create_app(test_config=None):
     def build_temp(index):
         temp = sensors.temp
         return {
-            "id": 0,
+            "id": index,
             "name": temp.name,
             "temperatureC": temp.temperature_c,
             "humidity": temp.humidity
@@ -111,6 +112,8 @@ def create_app(test_config=None):
 
     @app.route("/")
     def index():
-        return render_template("main.html")
+        project_name = __name__.split('.')[0]
+        project_version = version.__version__
+        return render_template("main.html", **locals(), sensors = sensors)
 
     return app
