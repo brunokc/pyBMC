@@ -120,7 +120,26 @@
         humidity.innerText = state.tempSensor.humidity.toFixed(1);
 
         const powerState = document.getElementById("power-state");
-        powerState.checked = state.psu.powerState;
+        if (state.psu.powerState) {
+            powerState.innerText = "On";
+            powerState.classList.add("text-success");
+        } else {
+            powerState.innerText = "Off";
+            powerState.classList.remove("text-success");
+        }
+
+        const powerOk = document.getElementById("power-ok");
+        if (state.psu.powerOk) {
+            powerOk.innerText = "Yes";
+            powerOk.classList.remove("text-danger");
+            powerOk.classList.add("text-success");
+        } else {
+            powerOk.innerText = "No";
+            powerOk.classList.remove("text-success");
+            if (state.psu.powerState) {
+                powerOk.classList.add("text-danger");
+            }
+        }
     }
 
     const speedControls = document.getElementsByClassName("fan-speed-control");
@@ -162,4 +181,9 @@
     if (autoRefresh.checked) {
         startAutoRefresh();
     }
+
+    const powerButton = document.getElementById("power-button");
+    powerButton.addEventListener("click", (event) => {
+        console.log("Power button pressed: " + event.target.id);
+    });
 })();

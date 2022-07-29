@@ -178,9 +178,6 @@ class PsuPin:
             self._pi.write(self._pin, 0)
 
     def update_state(self):
-        if self._mode == pigpio.OUTPUT:
-            raise RuntimeError("update_state is invalid on an output pin")
-
         self._state = self._pi.read(self._pin)
 
     def stop(self):
@@ -212,15 +209,24 @@ class PsuPin:
 
 class Psu:
     def __init__(self, pi) -> None:
-        self.power_switch = PsuPin("ps_switch", pi, 25, pigpio.OUTPUT)
-        self.ps_ok = PsuPin("ps_ok", pi, 27, pigpio.INPUT)
+        self._power_switch = PsuPin("ps_switch", pi, 25, pigpio.OUTPUT)
+        self._power_ok = PsuPin("ps_ok", pi, 27, pigpio.INPUT)
 
     def update_state(self):
-        self.ps_ok.update_state()
+        self._power_switch.update_state()
+        self._power_ok.update_state()
 
     def stop(self):
-        self.power_switch.stop()
-        self.ps_ok.stop()
+        self._power_switch.stop()
+        self._power_ok.stop()
+
+    @property
+    def power_switch(self):
+        return self._power_switch.state
+
+    @property
+    def power_ok(self):
+        return self._power_ok.state
 
 class Sensors:
     def __init__(self) -> None:
@@ -275,6 +281,6 @@ class Sensors:
 
         # If power is not on, we need to manually reset the state of the fans
         # as we haven't had a chance to do that since the power was cut
-        if not self.psu.ps_ok.state:
+        if not self.psu.power_switch:
             for fan in self.case_fans:
                 fan.reset()

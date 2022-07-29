@@ -32,15 +32,73 @@
     </div>
   </nav>
 
-  <div class="d-flex flex-column rounded shadow-sm mx-2 my-3">
-    <div class="d-flex flex-row rounded-top p-2 text-white bg-dark bg-gradient">
-      <span class="flex-grow-1">System</span>
-      <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" role="switch" id="power-state">
-        <label class="form-check-label" for="power-state"><i class="bi bi-power"></i>&nbsp;PSU Power</label>
+  <!-- BMC power button modal -->
+  <div id="bmc-power-modal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-power"></i>&nbsp;Shutdown / Reboot
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="shutdownRadioOptions" id="shutdownRadio1" value="Shutdown">
+            <label class="form-check-label" for="shutdownRadio1">Shutdown</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="shutdownRadioOptions" id="shutdownRadio2" value="Reboot" checked>
+            <label class="form-check-label" for="shutdownRadio2">Reboot</label>
+          </div>
+          <hr>
+          <div class="input-group">
+            <span class="input-group-text" id="password-icon"><i class="bi bi-key"></i></span>
+            <input id="bmc-power-password" type="password" class="form-control" placeholder="Password" aria-label="Username" aria-describedby="password-icon">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary">Confirm Identity</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
       </div>
     </div>
-    <div class="p-3">
+  </div>
+
+  <div class="d-flex flex-column rounded shadow-sm mx-2 my-3">
+    <div class="d-flex flex-row rounded-top p-2 text-white bg-dark bg-gradient">
+      <span class="flex-grow-1">{{ project_name }}</span>
+      <button id="bmc-power-button" type="button" class="btn btn-sm btn-danger px-3" data-bs-toggle="modal" data-bs-target="#bmc-power-modal">
+        <i class="bi bi-power"></i>&nbsp;Power
+      </button>
+    </div>
+    <div class="container-fluid p-3">
+      <div class="row">
+        <div class="col-sm-3">Model:</div>
+        <div class="col"><span id="model" class="h6"></span></div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3">Total Memory:</div>
+        <div class="col"><span class="h6"><span id="totalMem">0</span>MB</span></div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3">CPU Temperature:</div>
+        <div class="col">
+          <span class="h6">
+            <span id="cpuTempC">0.0</span>C<i class="bi bi-thermometer-half"></i>
+            (<span id="cpuTempF">0.0</span>F<i class="bi bi-thermometer-half"></i>)
+          </span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3">Throttled:</div>
+        <div class="col"><span id="throttled" class="h6">No</span></div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3">Uptime:</div>
+        <div class="col"><span id="uptime" class="h6"></span></div>
+      </div>
+      <!-- <hr>
       <div>
         Model: <span class="h6"><span id="model"></span></span>
       </div>
@@ -59,6 +117,30 @@
       </div>
       <div>
         Uptime: <span class="h6"><span id="uptime"></span></span>
+      </div> -->
+    </div>
+  </div>
+
+  <div class="d-flex flex-column rounded shadow-sm mx-2 my-3">
+    <div class="d-flex flex-row rounded-top p-2 text-white bg-dark bg-gradient">
+      <span class="flex-grow-1">System</span>
+      <button id="power-button" type="button" class="btn btn-sm btn-danger px-3">
+        <i class="bi bi-power"></i>&nbsp;Power
+      </button>
+    </div>
+    <div class="container-fluid p-3">
+      <div class="row">
+        <div class="col-sm-3">Power:</div>
+        <div class="col">
+          <span class="h6">
+            <i class="bi bi-power"></i>
+            <span id="power-state"></span>
+          </span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3">Power Ok:</div>
+        <div class="col"><span id="power-ok" class="h6"></span></div>
       </div>
     </div>
   </div>

@@ -48,13 +48,18 @@ def get_system_info():
         {
             "name": "uptime",
             "cmd": "uptime",
-            "re": re.compile("up\s(\d+\sdays,\s+\d+\:\d+)"),
+            "re": re.compile("up\s(\d+\sdays,\s+[^,]+)"),
         },
         {
             "name": "model",
             "cmd": ["cat", "/proc/cpuinfo"],
             "re": re.compile("Model\s+:\s(.+)"),
-        }
+        },
+        # TODO:
+        # - uptime: /proc/uptime?
+        #   - Can we use a bar graph?
+        # - Parse uptime a bit better
+        # - Memory: bar graph (green/red) for available/used?
     ]
 
     systemInfo = {}

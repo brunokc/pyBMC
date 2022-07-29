@@ -26,7 +26,8 @@ def build_temp(index):
 
 def build_psu():
     return {
-        "powerState": sensors.psu.ps_ok.state
+        "powerState": sensors.psu.power_switch,
+        "powerOk": sensors.psu.power_ok,
     }
 
 @bp.route("/bmc")
