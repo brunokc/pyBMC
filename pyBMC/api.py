@@ -30,9 +30,13 @@ def build_psu():
         "powerOk": sensors.psu.power_ok,
     }
 
-@bp.route("/bmc")
-def system():
+@bp.route("/bmc/info")
+def bmc_info():
     return rpi.get_system_info()
+
+@bp.route("/bmc/stats")
+def bmc_stats():
+    return rpi.get_system_stats()
 
 @bp.route("/state")
 def get_state():
