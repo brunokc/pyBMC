@@ -68,7 +68,8 @@
   <div class="d-flex flex-column rounded shadow-sm mx-2 my-3">
     <div class="d-flex flex-row rounded-top p-2 text-white bg-dark bg-gradient">
       <span class="flex-grow-1">{{ project_name }}</span>
-      <button id="bmc-power-button" type="button" class="btn btn-sm btn-danger px-3" data-bs-toggle="modal" data-bs-target="#bmc-power-modal">
+      <button id="bmc-power-button" type="button" class="btn btn-sm btn-danger px-3"
+        data-bs-toggle="modal" data-bs-target="#bmc-power-modal" data-value="0">
         <i class="bi bi-power"></i>&nbsp;Power
       </button>
     </div>
@@ -79,7 +80,11 @@
       </div>
       <div class="row">
         <div class="col-sm-3">Total Memory:</div>
-        <div class="col"><span class="h6"><span id="totalMem">0</span>MB</span></div>
+        <div class="col">
+          <span class="h6">
+            <span id="totalMem">0</span>MB&nbsp;<i class="bi bi-memory"></i>
+          </span>
+        </div>
       </div>
       <div class="row">
         <div class="col-sm-3">CPU Temperature:</div>
@@ -96,7 +101,12 @@
       </div>
       <div class="row">
         <div class="col-sm-3">Uptime:</div>
-        <div class="col"><span id="uptime" class="h6"></span></div>
+        <div class="col">
+          <span class="h6">
+            <span id="uptime"></span>
+            <i class="bi bi-clock-history"></i>
+          </span>
+        </div>
       </div>
       <!-- <hr>
       <div>
@@ -124,7 +134,7 @@
   <div class="d-flex flex-column rounded shadow-sm mx-2 my-3">
     <div class="d-flex flex-row rounded-top p-2 text-white bg-dark bg-gradient">
       <span class="flex-grow-1">System</span>
-      <button id="power-button" type="button" class="btn btn-sm btn-danger px-3">
+      <button id="power-button" type="button" class="btn btn-sm btn-success px-3" data-value="false">
         <i class="bi bi-power"></i>&nbsp;Power
       </button>
     </div>
@@ -140,7 +150,12 @@
       </div>
       <div class="row">
         <div class="col-sm-3">Power Ok:</div>
-        <div class="col"><span id="power-ok" class="h6"></span></div>
+        <div class="col">
+          <span class="h6">
+            <i class="bi bi-lightning-charge"></i>
+            <span id="power-ok"></span>
+          </span>
+        </div>
       </div>
     </div>
   </div>
@@ -182,6 +197,6 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='main.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>
