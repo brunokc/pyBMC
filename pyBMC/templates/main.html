@@ -169,11 +169,11 @@
         <div id="{{ fan_id ~ '-text' }}" class="gauge-text text-center"></div>
         <canvas id="{{ fan_id ~ '-gauge' }}"></canvas>
         <h5 class="text-center"><i class="bi bi-fan"></i>&nbsp;Fan {{ fan.id + 1 }}</h5>
-        <div class="ps-5">
-          <label for="{{ fan_id ~ '-speed-control' }}">Power:</label>
-          <input id="{{ fan_id ~ '-speed-control' }}" type="range" min="0" max="100" value="100"
-            class="fan-speed-control align-middle" data-fan-id="{{ fan.id + 1 }}">
+        <div class="px-5">
+          <label for="{{ fan_id ~ '-speed-control' }}">Power</label>
           <span id="{{ fan_id ~ '-range' }}" class="fan-speed-control-text">100%</span>
+          <input id="{{ fan_id ~ '-speed-control' }}" type="range" min="0" max="100" value="100"
+            class="form-range fan-speed-control align-middle" data-fan-id="{{ fan.id + 1 }}">
         </div>
       </div>
       {% endfor %}

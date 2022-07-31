@@ -18,11 +18,13 @@ canvas {
 }
 
 .fan-speed-control {
-    /* appearance: none; */
-    /* width: 35%; Full-width */
     height: 25px; /* Specified height */
     background: #d3d3d3; /* Grey background */
     outline: none;
+}
+
+.fan-speed-control-text {
+    float: right;
 }
 
 @media screen and (min-width: 900px) {
