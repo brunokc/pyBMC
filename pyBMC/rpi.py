@@ -53,11 +53,6 @@ def get_system_info():
             "re": re.compile("gpu=(\d+)M"),
             "converter": lambda x: int(x),
         },
-        # TODO:
-        # - uptime: /proc/uptime?
-        #   - Can we use a bar graph?
-        # - Parse uptime a bit better
-        # - Memory: bar graph (green/red) for available/used?
     ]
 
     return {
@@ -88,13 +83,9 @@ def get_system_stats():
             "name": "uptime",
             "cmd": ["cat", "/proc/uptime"],
             "re": re.compile("^([\d.]+)"),
-            # "converter": uptime_converter,
         },
         # TODO:
-        # - uptime: /proc/uptime?
-        #   - Can we use a bar graph?
-        # - Parse uptime a bit better
-        # - Memory: bar graph (green/red) for available/used?
+        # - Memory usage: bar graph (green/red) for available/used?
     ]
 
     return {
