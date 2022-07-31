@@ -96,8 +96,37 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-sm-3">Throttled:</div>
-        <div class="col"><span id="throttled" class="h6">No</span></div>
+        <div class="col-sm-3">CPU State:</div>
+        <div class="col">
+          <div class="row">
+            <div class="col">
+              <span class="h6">
+                <i id="under-voltage" class="bi bi-check-circle-fill text-success"></i>&nbsp;
+                Under-voltaged
+              </span>
+            </div>
+            <div class="col">
+              <span class="h6">
+                <i id="frequency-capped" class="bi bi-check-circle-fill text-success"></i>&nbsp;
+                Frequency limited
+              </span>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <span class="h6">
+                <i id="throttled" class="bi bi-check-circle-fill text-success"></i>&nbsp;
+                Throttled
+              </span>
+            </div>
+            <div class="col">
+              <span class="h6">
+                <i id="soft-temp-limited" class="bi bi-check-circle-fill text-success"></i>&nbsp;
+                Soft temperature limited
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="row">
         <div class="col-sm-3">Uptime:</div>

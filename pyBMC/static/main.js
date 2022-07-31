@@ -80,10 +80,23 @@ import WebRequest from "./webrequest.js";
         totalMem.textContent = bmc.systemInfo.totalMem;
     }
 
+    // Throttling Map
+    const ThrottlingMap = {
+        UnderVoltageDetected: 0x1,
+        ArmFrequencyCapped: 0x2,
+        CurrentlyThrottled: 0x4,
+        SoftTemperatureLimitActive: 0x8,
+        UnderVoltageOccurred: 0x10000,
+        ArmFrequencyCappingOcurred: 0x20000,
+        ThrottlingOcurred: 0x40000,
+        SoftTemperatureLimitedOcurred: 0x80000,
+    }
+
     const SECOND_IN_MS = 1000;
     const MINUTE_IN_MS = SECOND_IN_MS * 60;
     const HOUR_IN_MS = MINUTE_IN_MS * 60
     const DAY_IN_MS = HOUR_IN_MS * 24;
+
     function formatUptime(uptime_msec) {
         let result = [];
         const days = Math.floor(uptime_msec / DAY_IN_MS);
@@ -113,6 +126,16 @@ import WebRequest from "./webrequest.js";
         return result.join(", ")
     }
 
+    function applyClassByState(element, classes, state) {
+        Object.keys(classes).forEach((s) => {
+            if (s == state) {
+                classes[s].forEach((c) => element.classList.add(c));
+            } else {
+                classes[s].forEach((c) => element.classList.remove(c));
+            }
+        });
+    }
+
     async function update_bmc_stats() {
         const bmcUri = location.origin + "/api/v1/bmc/stats";
         // const response = await fetch(bmcUri);
@@ -125,15 +148,31 @@ import WebRequest from "./webrequest.js";
         cpuTempC.textContent = bmc.systemStats.cpuTemp.toFixed(1);
         cpuTempF.textContent = tempInF.toFixed(1);
 
+        const classes = {
+            0: ["bi-check-circle-fill", "text-success"],
+            1: ["bi-bell-fill", "text-warning"],
+            2: ["bi-exclamation-circle-fill", "text-danger"],
+        };
+
+        const isUndervoltage = (bmc.systemStats.throttled & ThrottlingMap.UnderVoltageDetected);
+        const wasUndervoltage = (bmc.systemStats.throttled & ThrottlingMap.UnderVoltageOccurred);
+        const undervoltage = document.getElementById("under-voltage");
+        applyClassByState(undervoltage, classes, (isUndervoltage ? 2 : (wasUndervoltage ? 1 : 0)));
+
+        const isFrequencyLimited = (bmc.systemStats.throttled & ThrottlingMap.ArmFrequencyCapped);
+        const wasFrequencyLimited = (bmc.systemStats.throttled & ThrottlingMap.ArmFrequencyCappingOcurred);
+        const frequencyLimited = document.getElementById("frequency-capped");
+        applyClassByState(frequencyLimited, classes, (isFrequencyLimited ? 2 : (wasFrequencyLimited ? 1 : 0)));
+
+        const isThrottled = (bmc.systemStats.throttled & ThrottlingMap.CurrentlyThrottled);
+        const wasThrottled = (bmc.systemStats.throttled & ThrottlingMap.ThrottlingOcurred);
         const throttled = document.getElementById("throttled");
-        const wasThrottled = (bmc.systemStats.throttled & 0x40000);
-        if (wasThrottled) {
-            throttled.innerHTML = "<i class='bi bi-exclamation-triangle-fill'></i>Yes";
-            throttled.classList.add("text-danger");
-        } else {
-            throttled.textContent = "No";
-            throttled.classList.remove("text-danger");
-        }
+        applyClassByState(throttled, classes, (isThrottled ? 2 : (wasThrottled ? 1 : 0)));
+
+        const isTempLimited = (bmc.systemStats.throttled & ThrottlingMap.SoftTemperatureLimitActive);
+        const wasTempLimited = (bmc.systemStats.throttled & ThrottlingMap.SoftTemperatureLimitedOcurred);
+        const softTempLimited = document.getElementById("soft-temp-limited");
+        applyClassByState(softTempLimited, classes, (isTempLimited ? 2 : (wasTempLimited ? 1 : 0)));
 
         const uptime = document.getElementById("uptime");
         uptime.textContent = formatUptime(bmc.systemStats.uptime * 1000);
