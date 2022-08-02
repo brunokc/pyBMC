@@ -1,5 +1,5 @@
 
-from flask import Blueprint, request
+from quart import Blueprint, request
 from . import Sensors, rpi
 
 sensors = Sensors.Sensors()
@@ -31,15 +31,15 @@ def build_psu():
     }
 
 @bp.route("/bmc/info")
-def bmc_info():
+async def bmc_info():
     return rpi.get_system_info()
 
 @bp.route("/bmc/stats")
-def bmc_stats():
+async def bmc_stats():
     return rpi.get_system_stats()
 
 @bp.route("/state")
-def get_state():
+async def get_state():
     sensors.update_state()
     data = { }
 
@@ -55,7 +55,7 @@ def get_state():
     return data
 
 @bp.route("/fan/<int:fan_id>", methods=["GET", "PATCH"])
-def fan_state(fan_id):
+async def fan_state(fan_id):
     if fan_id < 0 or fan_id >= len(sensors.fans):
         return "Fan not found", 404
 
@@ -73,7 +73,7 @@ def fan_state(fan_id):
         return "", 204
 
 @bp.route("/temp/<int:temp_id>")
-def temp_state(temp_id):
+async def temp_state(temp_id):
     # We only support one for now
     if temp_id != 0:
         return "Temp sensor not found", 404
@@ -83,7 +83,7 @@ def temp_state(temp_id):
     }
 
 @bp.route("/psu", methods=["GET", "PATCH"])
-def psu_state():
+async def psu_state():
     if request.method == "GET":
         return build_psu()
 

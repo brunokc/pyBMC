@@ -1,11 +1,11 @@
 
 import os
 
-from flask import Flask, render_template
+from quart import Quart, render_template
 from . import version
 
 def create_app(test_config=None):
-    app = Flask(__name__.split('.')[0], instance_relative_config=True)
+    app = Quart(__name__.split('.')[0], instance_relative_config=True)
     app.config.from_mapping(
         JSON_SORT_KEYS=False,
         # SECRET_KEY="dev",
@@ -27,10 +27,10 @@ def create_app(test_config=None):
     app.register_blueprint(api.bp)
 
     @app.route("/")
-    def index():
+    async def index():
         project_name = __name__.split('.')[0]
         project_version = version.__version__
         sensors = api.sensors
-        return render_template("main.html", **locals())
+        return await render_template("main.html", **locals())
 
     return app
