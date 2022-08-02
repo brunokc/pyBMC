@@ -1,0 +1,3 @@
+graft pyBMC/static
+graft pyBMC/templates
+global-exclude *.pyc

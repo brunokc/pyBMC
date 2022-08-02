@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools >= 40.9.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyBMC"
+description = ("A tool to implement a basic BMC on computers that don't have one. "
+    "Useful to remotely turn a computer on or off or control fans.")
+readme = "README.md"
+requires-python = ">=3.9"
+author = [
+    { name = "Bruno Krachete da Costa" },
+    { email = "brunokc@kraychete.com" }
+]
+license = { file = "LICENSE" }
+keywords = ["bmc", "remote control"]
+packages = find
+include_package_data = True
+zip-safe = False
+dependencies = [
+    "flask",
+    "pigpio",
+]
+dynamic = ["version"]
+
+#[project.urls]
+#homepage = ""
+
+[tools.options.packages]
+find = {}
+
+[tools.setuptools.dynamic]
+version = { attr = "pyBMC.__version__" }
