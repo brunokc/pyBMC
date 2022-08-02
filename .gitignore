@@ -1,6 +1,12 @@
+# Python virtual environment files (machine-specific)
 venv/
 
+# Compiled Python files
 *.pyc
 __pycache__/
 
+# Temporary old files
+old/
+
+# Created by the app
 instance/
