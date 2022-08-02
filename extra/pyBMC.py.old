@@ -1,0 +1,342 @@
+#
+# pyBMC
+#
+# Based on the work of DriftKingTW
+# (https://blog.driftking.tw/en/2019/11/Using-Raspberry-Pi-to-Control-a-PWM-Fan-and-Monitor-its-Speed/)
+#
+
+import sys
+import os
+import time
+import signal
+import atexit
+import curses
+
+import RPi.GPIO as GPIO
+
+import board
+import adafruit_dht
+
+# Noctua specifies 25Khz frequency for PWM control
+PWM_FREQUENCY = 25000
+PULSES_PER_ROTATION = 2
+
+class Fan:
+    def __init__(self, name, rpm_pin, pwm_pin) -> None:
+        self.name = name
+        self.rpm_pin = rpm_pin
+        self.pwm_pin = pwm_pin
+        self._rpm = 0
+        self._lastEventTime = 0
+        self._pwm = 100
+        self._pwm_device = None
+
+        log(f"Setting up GPIOs for fan {self.name}...")
+        log(f"   RPM pin: {self.rpm_pin}")
+        GPIO.setup(self.rpm_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.add_event_detect(self.rpm_pin, GPIO.FALLING, Fan.on_rpm_falling_edge)
+
+        log(f"   PWM pin: {self._pwm_pin}")
+        GPIO.setup(self._pwm_pin, GPIO.OUT, initial=GPIO.LOW)
+        self._pwm_device = GPIO.PWM(self._pwm_pin, PWM_FREQUENCY)
+        self._pwm_device.start(100)
+
+    @classmethod
+    def on_rpm_falling_edge(pin):
+        fan = fan_by_rpm_pin[pin]
+        if fan:
+            dt = time.time() - fan._lastEventTime
+            # Reject spurious short pulses
+            if dt < 0.005:
+                return
+
+            freq = 1 / dt
+            rpm = freq * 60 / PULSES_PER_ROTATION
+            fan._rpm = rpm
+            fan._lastEventTime = time.time()
+
+    def set_speed(self, speed):
+        self._pwm_device.ChangeDutyCycle(speed)
+
+
+# fans = [
+#     {
+#         "name": "fan1",
+#         "rpmPin": 18,
+#         "rpm": 0,
+#         "lastEventTime": 0,
+#         "pwmPin": 17,
+#         "pwm": 100,
+#         "pwmDevice": None
+#     },
+#     {
+#         "name": "fan2",
+#         "rpmPin": 23,
+#         "rpm": 0,
+#         "lastEventTime": 0,
+#         "pwmPin": 24,
+#         "pwm": 100,
+#         "pwmDevice": None
+#     },
+#     {
+#         "name": "fan3",
+#         "rpmPin": 16,
+#         "rpm": 0,
+#         "lastEventTime": 0,
+#         "pwmPin": 20,
+#         "pwm": 100,
+#         "pwmDevice": None
+#     },
+# ]
+
+fans = [
+    Fan("fan1", rpm_pin = 18, pwm_pin = 17),
+    Fan("fan2", rpm_pin = 23, pwm_pin = 24),
+    Fan("fan3", rpm_pin = 16, pwm_pin = 20),
+]
+
+fan_by_rpm_pin = { }
+for fan in fans:
+    fan_by_rpm_pin[fan._rpm_pin] = fan
+
+class TempHumiditySensor:
+    def __init__(self, name, pin) -> None:
+        self._name = name
+        self._pin = pin
+
+        log(f"Setting up GPIOs for temp probe {self._name}...")
+        self._device = adafruit_dht.DHT22(self._pin)
+
+    @property
+    def temperature_c(self):
+        return self._device.temperature
+
+    @property
+    def temperature_f(self):
+        return 32 + self._device.temperature * 9 / 5
+
+    @property
+    def humidity(self):
+        return self._device.humidity
+
+# temp = {
+#     "name": "temp1",
+#     "pin": board.D21,
+#     "device": None,
+#     "temp_c": 0,
+#     "temp_f": 0,
+#     "humidity": 0
+# }
+
+temp = TempHumiditySensor("temp1", board.D21)
+
+class Psu:
+    def __init__(self, name, pin, mode) -> None:
+        self._name = name
+        self._pin = pin
+        self._mode = mode
+        
+    def read(self):
+        return GPIO.input(self._pin)
+
+    def write(self, value):
+        GPIO.output(self._pin, value)
+
+
+# psu = {
+#     "ps_switch": {
+#         "pin": 25,
+#         "mode": GPIO.OUT,
+#         "state": False
+#     },
+#     # "ps_on": {
+#     #     "pin": 6,
+#     #     "mode": GPIO.IN,
+#     #     "state": False
+#     # },
+#     "ps_ok": {
+#         "pin": 27,
+#         "mode": GPIO.IN,
+#         "state": False
+#     }
+# }
+
+psu = {
+    "ps_switch": Psu("ps_switch", 25, GPIO.OUT),
+    "ps_ok": Psu("ps_ok", 27, GPIO.IN)
+}
+
+def log(*args):
+    print(*args)
+
+def cleanup():
+    log("Cleaning up...")
+    GPIO.cleanup()
+    if temp["device"]:
+        temp["device"].exit()
+
+
+#lastEventTime = time.time()
+# def on_rpm_falling_edge(pin):
+#     #global lastEventTime
+
+#     #log(f"on_rpm_falling_edge({pin})")
+#     fan = fan_by_rpm_pin[pin]
+#     if fan:
+#         dt = time.time() - fan["lastEventTime"]
+#         # Reject spurious short pulses
+#         if dt < 0.005:
+#             return
+
+#         freq = 1 / dt
+#         rpm = freq * 60 / PULSES_PER_ROTATION
+#         fan["rpm"] = rpm
+#         fan["lastEventTime"] = time.time()
+
+
+def setup_pins():
+    GPIO.setmode(GPIO.BCM)
+    #GPIO.setwarnings(False)
+
+    # Temp probe
+    #log(f"Setting up GPIOs for temp probe...")
+    #temp["device"] = adafruit_dht.DHT22(temp["pin"])
+
+    # Fan pins
+    # for fan in fans:
+    #     log(f"Setting up GPIOs for fan {fan['name']}...")
+    #     rpmPin = fan["rpmPin"]
+    #     log(f"   RPM pin: {rpmPin}")
+    #     GPIO.setup(rpmPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    #     GPIO.add_event_detect(rpmPin, GPIO.FALLING, on_rpm_falling_edge)
+
+    #     pwmPin = fan["pwmPin"]
+    #     log(f"   PWM pin: {pwmPin}")
+    #     GPIO.setup(pwmPin, GPIO.OUT, initial=GPIO.LOW)
+    #     fan["pwmDevice"] = GPIO.PWM(pwmPin, PWM_FREQUENCY)
+    #     fan["pwmDevice"].start(100)
+
+    # # PSU pins
+    # log(f"Setting up GPIOs for PSU...")
+    # for _, pin in psu.items():
+    #     if pin["mode"] == GPIO.IN:
+    #         GPIO.setup(pin["pin"], pin["mode"], pull_up_down=GPIO.PUD_DOWN)
+    #     else:
+    #         GPIO.setup(pin["pin"], pin["mode"], initial=GPIO.LOW)
+
+
+def set_fan_speed(fan_index, speed):
+    fan_device = fans[fan_index]["pwmDevice"]
+    fan_device.ChangeDutyCycle(speed)
+
+def update_psu_state():
+    psok = psu["ps_ok"]
+    psok["state"] = GPIO.input(psok["pin"])
+
+def update_temp_state():
+    dht = temp["device"]
+
+    try:
+        temp_c = dht.temperature
+        temp_f = 0
+        if temp_c:
+            temp_f = 32 + temp_c * 9 / 5
+        humidity = dht.humidity
+
+        temp["temp_c"] = temp_c
+        temp["temp_f"] = temp_f
+        temp["humidity"] = humidity
+    except RuntimeError:
+        pass
+
+def toggle_power():
+    switch = psu["ps_switch"]
+    new_state = GPIO.LOW if switch["state"] else GPIO.HIGH
+    GPIO.output(switch["pin"], new_state)
+    switch["state"] = True if new_state else False
+
+def console(stdscr):
+    curses.curs_set(0)
+    stdscr.nodelay(True)
+    selected_fan = 0
+
+    while True:
+        update_psu_state()
+        update_temp_state()
+
+        stdscr.addstr(0, 30, "PyBMC v0.1", curses.A_REVERSE)
+        stdscr.addstr(2, 10, f" Fan 1: {int(fans[0]['rpm'])} rpm ")
+        stdscr.addstr(3, 10, f" Fan 1 PWM: {fans[0]['pwm']}%  ", curses.A_REVERSE if selected_fan == 0 else curses.A_NORMAL)
+        stdscr.addstr(2, 30, f" Fan 2: {int(fans[1]['rpm'])} rpm ")
+        stdscr.addstr(3, 30, f" Fan 2 PWM: {fans[1]['pwm']}%  ", curses.A_REVERSE if selected_fan == 1 else curses.A_NORMAL)
+        stdscr.addstr(2, 50, f" Fan 3: {int(fans[2]['rpm'])} rpm ")
+        stdscr.addstr(3, 50, f" Fan 3 PWM: {fans[2]['pwm']}%  ", curses.A_REVERSE if selected_fan == 2 else curses.A_NORMAL)
+
+        stdscr.addstr(5, 11, f"Temperature: {temp['temp_c']:.1f}C ({temp['temp_f']:.1f}F)")
+        stdscr.addstr(5, 51, f"Humidity: {temp['humidity']}%")
+
+        psok = psu["ps_ok"]
+        psu_state = "on" if psok['state'] else "off"
+        stdscr.addstr(7, 11, f"PSU Ok: {psu_state} ")
+
+        stdscr.refresh()
+
+        c = stdscr.getch()
+        if c == ord('P') or c == ord('p'):
+            toggle_power()
+        elif c == curses.KEY_RIGHT:
+            selected_fan = selected_fan + 1 if selected_fan < len(fans) - 1 else selected_fan
+        elif c == curses.KEY_LEFT:
+            selected_fan = selected_fan - 1 if selected_fan > 0 else 0
+        elif c == curses.KEY_UP:
+            pwm = fans[selected_fan]["pwm"]
+            pwm = pwm + 10 if pwm < 100 else 100
+            fans[selected_fan]["pwm"] = pwm
+            set_fan_speed(selected_fan, pwm)
+        elif c == curses.KEY_DOWN:
+            pwm = fans[selected_fan]["pwm"]
+            pwm = pwm - 10 if pwm > 0 else 0
+            fans[selected_fan]["pwm"] = pwm
+            set_fan_speed(selected_fan, pwm)
+        elif c == ord('t') or c == ord('T'):
+            fan_device = fans[selected_fan]["pwmDevice"]
+            if 
+        elif c != curses.ERR:
+            break
+
+        time.sleep(0.5)
+
+
+def dump_data():
+    log(f"Fan 1: {int(fans[0]['rpm'])} rpm")
+    log(f"Fan 2: {int(fans[1]['rpm'])} rpm")
+    log(f"Fan 3: {int(fans[2]['rpm'])} rpm")
+
+    log(f"Temperature: {temp['temp_c']:.1f}C ({temp['temp_f']:.1f}F)")
+    log(f"Humidity: {temp['humidity']}%")
+
+    psok = psu["ps_ok"]
+    psu_state = "on" if psok['state'] else "off"
+    log(f"PSU Ok: {psu_state}")
+    log()
+
+def text_console():
+    toggle_power()
+    while True:
+        update_psu_state()
+        update_temp_state()
+
+        dump_data()
+        time.sleep(1)
+
+def main():
+    atexit.register(cleanup)
+    setup_pins()
+
+    if len(sys.argv) == 2 and sys.argv[1] == "console":
+        curses.wrapper(console)
+    else:
+        text_console()
+
+if __name__ == "__main__":
+    main()

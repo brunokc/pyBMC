@@ -5,8 +5,5 @@ venv/
 *.pyc
 __pycache__/
 
-# Temporary old files
-old/
-
 # Created by the app
 instance/
