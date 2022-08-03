@@ -18,9 +18,7 @@ canvas {
 }
 
 .fan-speed-control {
-    height: 25px; /* Specified height */
-    background: #d3d3d3; /* Grey background */
-    outline: none;
+    background: #d3d3d3;
 }
 
 .fan-speed-control-text {

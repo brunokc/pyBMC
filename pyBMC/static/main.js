@@ -237,11 +237,21 @@ import WebRequest from "./webrequest.js";
 
     const speedControls = document.getElementsByClassName("fan-speed-control");
     Array.from(speedControls).forEach((el) => {
+        // For some reason, when the fan speed range text changes from 100% (the initial value) to
+        // its new value < 100%, that causes the containing div (.fan-speed-box) to get smaller,
+        // which causes contents to shift ever so slightly, which is very annoying. I wanted to set
+        // the min-width of the fan-speed-box div to whatever the width value is at load time
+        // which is the case of when "100%" is displayed. I couldn't get it to work though -- I tried
+        // setting min-width to min-content, max-content, fit-content(100%), nothing seemed to work.
+        // I'm left with JavaScript as my only option, which seems to work fine.
+        const box = el.parentElement.parentElement;
+        box.style.minWidth = box.clientWidth + "px";
+
         el.addEventListener("input", (event) => {
             const fanId = el.dataset.fanId;
             const rangeControlId = `fan${fanId}-range`;
             const rangeControl = document.getElementById(rangeControlId);
-            rangeControl.textContent = el.value + '%';
+            rangeControl.textContent = el.value + "%";
         });
     });
 
