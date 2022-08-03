@@ -76,7 +76,8 @@ import WebRequest from "./webrequest.js";
         console.log("Creating websocket...");
         webSocket = new WebSocket(wsUri);
         webSocket.addEventListener("close", function (event) {
-            document.getElementById("error-message").textContent = "WebSocket connection closed";
+            console.log("onclose");
+            document.getElementById("error-message").textContent = "Lost connection to the server. Re-connecting...";
             document.querySelector(".error-block").style.visibility = "visible";
             stopAutoRefresh();
             startAutoRefreshOnWebSocketConnection = true;
@@ -84,12 +85,13 @@ import WebRequest from "./webrequest.js";
         });
 
         webSocket.addEventListener("error", function (event) {
+            console.log("onerror");
             console.log(event);
-            document.getElementById("error-message").textContent = "WebSocket connection error";
+            document.getElementById("error-message").textContent = "Server connection error";
             document.querySelector(".error-block").style.visibility = "visible";
-            stopAutoRefresh();
-            startAutoRefreshOnWebSocketConnection = true;
-            createWebSocket();
+            // stopAutoRefresh();
+            // startAutoRefreshOnWebSocketConnection = true;
+            // createWebSocket();
         });
 
         webSocket.addEventListener("open", function (event) {
