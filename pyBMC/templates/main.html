@@ -28,6 +28,11 @@
         <span class="h1"><i class="bi bi-cpu-fill p-1"></i>{{ project_name }}</span>
         <span class="align-bottom opacity-50">v{{ project_version }}</span>
       </div>
+      <span class="text-danger error-block">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span id="error-message"></span>
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </span>
       <form class="d-flex form-switch">
         <input id="auto-refresh-switch" class="form-check-input me-2" type="checkbox" role="switch" checked>
         <label class="form-check-label" for="auto-refresh-switch">Auto-Refresh</label>
@@ -105,13 +110,13 @@
             <div class="col">
               <span class="h6">
                 <i id="under-voltage" class="bi bi-check-circle-fill text-success"></i>&nbsp;
-                Under-voltaged
+                Under-voltage
               </span>
             </div>
             <div class="col">
               <span class="h6">
                 <i id="frequency-capped" class="bi bi-check-circle-fill text-success"></i>&nbsp;
-                Frequency limited
+                Frequency Limiting
               </span>
             </div>
           </div>
@@ -119,13 +124,13 @@
             <div class="col">
               <span class="h6">
                 <i id="throttled" class="bi bi-check-circle-fill text-success"></i>&nbsp;
-                Throttled
+                Throttling
               </span>
             </div>
             <div class="col">
               <span class="h6">
                 <i id="soft-temp-limited" class="bi bi-check-circle-fill text-success"></i>&nbsp;
-                Soft temperature limited
+                Soft Temperature Limiting
               </span>
             </div>
           </div>

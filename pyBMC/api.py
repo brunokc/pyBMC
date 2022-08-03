@@ -1,5 +1,7 @@
 
-from quart import Blueprint, request
+from quart import Blueprint, request, websocket
+import asyncio
+import json
 from . import Sensors, rpi
 
 sensors = Sensors.Sensors()
@@ -98,3 +100,66 @@ async def psu_state():
         # Convert to boolean
         new_state = (new_state in valid_on_values)
         sensors.psu.power_switch.write(new_state)
+
+#
+# Websocket support
+#
+
+async def websocket_send(data):
+    try:
+        while True:
+            await websocket.send(data)
+    except asyncio.CancelledError:
+        # Handle disconnection here
+        raise
+
+async def dispatch_websocket_request(req):
+    if "command" not in req or not req["command"]:
+        raise RuntimeError("Invalid websocket request")
+
+    cmd = req["command"]
+    command_map = {
+        "getBmcInfo": bmc_info,
+        "getBmcStats": bmc_stats,
+        "getSystemState": get_state,
+    }
+
+    callback = command_map.get(cmd)
+    response_data = await callback()
+    return {
+        "request": cmd,
+        "response": response_data
+    }
+
+async def websocket_receive():
+    try:
+        while True:
+            data = await websocket.receive()
+            request_data = json.loads(data)
+            response_data = dispatch_websocket_request(request_data)
+            await websocket.send(json.dumps(response_data))
+    except asyncio.CancelledError:
+        # Handle disconnection here
+        raise
+
+@bp.websocket("/ws")
+async def handle_websocket():
+    try:
+        while True:
+            data = await websocket.receive()
+            request_data = json.loads(data)
+            response_data = await dispatch_websocket_request(request_data)
+            await websocket.send(json.dumps(response_data))
+    except asyncio.CancelledError:
+        # Handle disconnection here
+        raise
+
+# @bp.websocket("/ws")
+# async def handle_websocket():
+#     try:
+#         producer = asyncio.create_task(websocket_send())
+#         consumer = asyncio.create_task(websocket_receive())
+#         await asyncio.gather(producer, consumer)
+#     except asyncio.CancelledError:
+#         # Handle disconnection here
+#         raise

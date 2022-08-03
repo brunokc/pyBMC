@@ -17,6 +17,10 @@ canvas {
     font-weight: bold;
 }
 
+.error-block {
+    visibility: hidden;
+}
+
 .fan-speed-control {
     background: #d3d3d3;
 }

@@ -68,16 +68,74 @@ import WebRequest from "./webrequest.js";
         });
     }
 
-    async function update_bmc_info() {
-        const bmcUri = location.origin + "/api/v1/bmc/info";
-        const response = await WebRequest.get(bmcUri);
-        const bmc = await response.json();
+    let startAutoRefreshOnWebSocketConnection = false;
 
+    const wsUri = "ws://" + location.host + "/api/v1/ws";
+    let webSocket = null;
+    function createWebSocket() {
+        console.log("Creating websocket...");
+        webSocket = new WebSocket(wsUri);
+        webSocket.addEventListener("close", function (event) {
+            document.getElementById("error-message").textContent = "WebSocket connection closed";
+            document.querySelector(".error-block").style.visibility = "visible";
+            stopAutoRefresh();
+            startAutoRefreshOnWebSocketConnection = true;
+            createWebSocket();
+        });
+
+        webSocket.addEventListener("error", function (event) {
+            console.log(event);
+            document.getElementById("error-message").textContent = "WebSocket connection error";
+            document.querySelector(".error-block").style.visibility = "visible";
+            stopAutoRefresh();
+            startAutoRefreshOnWebSocketConnection = true;
+            createWebSocket();
+        });
+
+        webSocket.addEventListener("open", function (event) {
+            document.querySelector(".error-block").style.visibility = "hidden";
+            if (startAutoRefreshOnWebSocketConnection) {
+                startAutoRefreshOnWebSocketConnection = false;
+                startAutoRefresh();
+            }
+        });
+
+        webSocket.addEventListener("message", function (event) {
+            const data = JSON.parse(event.data);
+            switch (data.request) {
+                case "getBmcInfo":
+                    update_bmc_info(data.response);
+                    break;
+
+                case "getBmcStats":
+                    update_bmc_stats(data.response);
+                    break;
+
+                case "getSystemState":
+                    update_system_state(data.response);
+                    break;
+
+                default:
+                    console.log(`Unrecognized request '${data.request}'`);
+                    break;
+            }
+        });
+    }
+
+    createWebSocket();
+
+    async function request_bmc_info() {
+        await webSocket.send(JSON.stringify({
+            "command": "getBmcInfo"
+        }));
+    }
+
+    function update_bmc_info(data) {
         const model = document.getElementById("model");
-        model.textContent = bmc.systemInfo.model;
+        model.textContent = data.systemInfo.model;
 
         const totalMem = document.getElementById("totalMem");
-        totalMem.textContent = bmc.systemInfo.totalMem;
+        totalMem.textContent = data.systemInfo.totalMem;
     }
 
     // Throttling Map
@@ -136,16 +194,18 @@ import WebRequest from "./webrequest.js";
         });
     }
 
-    async function update_bmc_stats() {
-        const bmcUri = location.origin + "/api/v1/bmc/stats";
-        // const response = await fetch(bmcUri);
-        const response = await WebRequest.get(bmcUri);
-        const bmc = await response.json();
+    async function request_bmc_stats() {
+        console.log("request_bmc_stats");
+        await webSocket.send(JSON.stringify({
+            "command": "getBmcStats"
+        }));
+    }
 
+    function update_bmc_stats(data) {
         const cpuTempC = document.getElementById("cpuTempC");
         const cpuTempF = document.getElementById("cpuTempF");
-        const tempInF = 32 + bmc.systemStats.cpuTemp * 9 / 5;
-        cpuTempC.textContent = bmc.systemStats.cpuTemp.toFixed(1);
+        const tempInF = 32 + data.systemStats.cpuTemp * 9 / 5;
+        cpuTempC.textContent = data.systemStats.cpuTemp.toFixed(1);
         cpuTempF.textContent = tempInF.toFixed(1);
 
         const classes = {
@@ -154,38 +214,40 @@ import WebRequest from "./webrequest.js";
             2: ["bi-exclamation-circle-fill", "text-danger"],
         };
 
-        const isUndervoltage = (bmc.systemStats.throttled & ThrottlingMap.UnderVoltageDetected);
-        const wasUndervoltage = (bmc.systemStats.throttled & ThrottlingMap.UnderVoltageOccurred);
+        const isUndervoltage = (data.systemStats.throttled & ThrottlingMap.UnderVoltageDetected);
+        const wasUndervoltage = (data.systemStats.throttled & ThrottlingMap.UnderVoltageOccurred);
         const undervoltage = document.getElementById("under-voltage");
         applyClassByState(undervoltage, classes, (isUndervoltage ? 2 : (wasUndervoltage ? 1 : 0)));
 
-        const isFrequencyLimited = (bmc.systemStats.throttled & ThrottlingMap.ArmFrequencyCapped);
-        const wasFrequencyLimited = (bmc.systemStats.throttled & ThrottlingMap.ArmFrequencyCappingOcurred);
+        const isFrequencyLimited = (data.systemStats.throttled & ThrottlingMap.ArmFrequencyCapped);
+        const wasFrequencyLimited = (data.systemStats.throttled & ThrottlingMap.ArmFrequencyCappingOcurred);
         const frequencyLimited = document.getElementById("frequency-capped");
         applyClassByState(frequencyLimited, classes, (isFrequencyLimited ? 2 : (wasFrequencyLimited ? 1 : 0)));
 
-        const isThrottled = (bmc.systemStats.throttled & ThrottlingMap.CurrentlyThrottled);
-        const wasThrottled = (bmc.systemStats.throttled & ThrottlingMap.ThrottlingOcurred);
+        const isThrottled = (data.systemStats.throttled & ThrottlingMap.CurrentlyThrottled);
+        const wasThrottled = (data.systemStats.throttled & ThrottlingMap.ThrottlingOcurred);
         const throttled = document.getElementById("throttled");
         applyClassByState(throttled, classes, (isThrottled ? 2 : (wasThrottled ? 1 : 0)));
 
-        const isTempLimited = (bmc.systemStats.throttled & ThrottlingMap.SoftTemperatureLimitActive);
-        const wasTempLimited = (bmc.systemStats.throttled & ThrottlingMap.SoftTemperatureLimitedOcurred);
+        const isTempLimited = (data.systemStats.throttled & ThrottlingMap.SoftTemperatureLimitActive);
+        const wasTempLimited = (data.systemStats.throttled & ThrottlingMap.SoftTemperatureLimitedOcurred);
         const softTempLimited = document.getElementById("soft-temp-limited");
         applyClassByState(softTempLimited, classes, (isTempLimited ? 2 : (wasTempLimited ? 1 : 0)));
 
         const uptime = document.getElementById("uptime");
-        uptime.textContent = formatUptime(bmc.systemStats.uptime * 1000);
+        uptime.textContent = formatUptime(data.systemStats.uptime * 1000);
     }
 
     let fakePowerState = false;
     let fakePowerOk = true;
-    async function update_system_state() {
-        const stateUri = location.origin + "/api/v1/state";
-        const response = await WebRequest.get(stateUri);
-        const state = await response.json();
-        // console.log(state);
+    async function request_system_state() {
+        console.log("request_system_state");
+        await webSocket.send(JSON.stringify({
+            "command": "getSystemState"
+        }));
+    }
 
+    function update_system_state(state) {
         for (var i = 0; i < state.fans.length; ++i) {
             const fan = state.fans[i];
             fans[i].gauge.set(fan.rpm);
@@ -260,11 +322,11 @@ import WebRequest from "./webrequest.js";
     let fanIntervalToken = null;
     function startAutoRefresh() {
         setTimeout(() => {
-            update_bmc_info();
-            update_bmc_stats();
-            update_system_state();
-            bmcIntervalToken = setInterval(update_bmc_stats, 1000);
-            fanIntervalToken = setInterval(update_system_state, 250);
+            request_bmc_info();
+            request_bmc_stats();
+            request_system_state();
+            bmcIntervalToken = setInterval(request_bmc_stats, 1000);
+            fanIntervalToken = setInterval(request_system_state, 250);
         }, 600);
     }
 
