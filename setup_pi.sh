@@ -10,7 +10,7 @@ curdir=$PWD
 cd $tmpdir
 curl -sL -o pybmc.zip https://github.com/brunokc/pyBMC/archive/${branch}.zip
 unzip -q pybmc.zip
-mv pyBMC-main ${curdir}/pyBMC
+mv pyBMC-${branch} ${curdir}/pyBMC
 cd ${curdir}/pyBMC
 rm -r $tmpdir
 
