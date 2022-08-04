@@ -8,8 +8,10 @@ unzip -q pybmc.zip
 mv pyBMC-main pyBMC
 cd pyBMC
 
-echo Creating Python virtual environment...
+echo Installing Python dependencies...
 sudo apt-get -y install python3-venv
+
+echo Creating Python virtual environment and activating it...
 python -m venv venv
 source venv/bin/activate
 
