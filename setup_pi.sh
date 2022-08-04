@@ -9,6 +9,7 @@ mv pyBMC-main pyBMC
 cd pyBMC
 
 echo Creating Python virtual environment...
+sudo apt-get install python3-venv
 python -m venv venv
 source venv/bin/activate
 
