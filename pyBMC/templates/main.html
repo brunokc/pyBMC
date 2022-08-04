@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>{{ project_name }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
 
   <!-- Gauge code from https://bernii.github.io/gauge.js/ -->
-  <script src="{{ url_for('static', filename='gauge.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/gauge.min.js') }}"></script>
 </head>
 <body>
   <nav class="navbar navbar-light bg-light">
@@ -229,6 +229,6 @@
     </div>
   </div>
 
-  <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
