@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo Downloading pyBMC...
-curl -L -o pybmc.zip https://github.com/brunokc/pyBMC/archive/main.zip
+curl -sL -o pybmc.zip https://github.com/brunokc/pyBMC/archive/main.zip
 mv pyBMC-main pyBMC
 cd pyBMC
 
