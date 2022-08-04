@@ -15,7 +15,11 @@ cd ${curdir}/pyBMC
 rm -r $tmpdir
 
 echo Installing Python dependencies...
-sudo apt-get -y install python3-venv
+sudo apt-get -y install python3-venv pigpiod
+
+echo Configuring pigpiod...
+sudo systemctl enable pigpiod
+sudo systemctl start pigpiod
 
 echo Creating Python virtual environment and activating it...
 python -m venv venv
