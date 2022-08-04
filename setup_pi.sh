@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
 echo Downloading pyBMC...
+tmpdir=`mktemp -d`
+cd $tmpdir
 curl -sL -o pybmc.zip https://github.com/brunokc/pyBMC/archive/main.zip
+unzip -q pybmc.zip
 mv pyBMC-main pyBMC
 cd pyBMC
 
@@ -12,3 +15,5 @@ source venv/bin/activate
 echo Installing dependencies...
 pip install --upgrade pip
 pip install -r requirements.txt
+
+rm -r $tmpdir
