@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 
+set -x
+
 echo Downloading pyBMC...
 tmpdir=`mktemp -d`
+curdir=$PWD
 cd $tmpdir
 curl -sL -o pybmc.zip https://github.com/brunokc/pyBMC/archive/main.zip
 unzip -q pybmc.zip
-mv pyBMC-main pyBMC
-cd pyBMC
+mv pyBMC-main ${curdir}/pyBMC
+cd ${curdir}/pyBMC
+rm -r $tmpdir
 
 echo Installing Python dependencies...
 sudo apt-get -y install python3-venv
@@ -18,5 +22,3 @@ source venv/bin/activate
 echo Installing dependencies...
 pip install --upgrade pip
 pip install -r requirements.txt
-
-rm -r $tmpdir
