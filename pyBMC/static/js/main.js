@@ -240,8 +240,6 @@ import WebRequest from "./webrequest.js";
         uptime.textContent = formatUptime(data.systemStats.uptime * 1000);
     }
 
-    let fakePowerState = false;
-    let fakePowerOk = true;
     async function request_system_state() {
         console.log("request_system_state");
         await webSocket.send(JSON.stringify({
@@ -267,8 +265,7 @@ import WebRequest from "./webrequest.js";
 
         const powerButton = document.getElementById("power-button");
         const powerState = document.getElementById("power-state");
-        // if (state.psu.powerState) {
-        if (fakePowerState) {
+        if (state.psu.powerState) {
             powerState.textContent = "On";
             powerState.dataset.value = true;
             powerState.classList.add("text-success");
@@ -281,15 +278,13 @@ import WebRequest from "./webrequest.js";
         }
 
         const powerOk = document.getElementById("power-ok");
-        // if (state.psu.powerState && state.psu.powerOk) {
-        if (fakePowerState && fakePowerOk) {
+        if (state.psu.powerState && state.psu.powerOk) {
             powerOk.textContent = "Yes";
             powerOk.classList.remove("text-danger");
             powerOk.classList.add("text-success");
         } else {
             powerOk.classList.remove("text-success");
-            // if (state.psu.powerState) {
-            if (fakePowerState) {
+            if (state.psu.powerState) {
                 powerOk.innerHTML = "<i class='bi bi-exclamation-triangle-fill'></i>No";
                 powerOk.classList.add("text-danger");
             } else {
@@ -367,14 +362,11 @@ import WebRequest from "./webrequest.js";
         const newValue = !toBool(powerState.dataset.value);
         console.log("newValue = " + newValue);
         const stateUri = location.origin + "/api/v1/psu";
-        // const response = await patchRequest(url, { "powerState": value });
-        // if (response.status === 204) {
-        if (newValue) {
+        const response = await WebRequest.patch(stateUri, { "powerState": value });
+        if (response.status === 204) {
             powerButton.classList.replace("btn-success", "btn-danger");
-            fakePowerState = true;
         } else {
             powerButton.classList.replace("btn-danger", "btn-success");
-            fakePowerState = false;
         }
 
         powerState.dataset.value = newValue;
