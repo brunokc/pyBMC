@@ -362,7 +362,7 @@ import WebRequest from "./webrequest.js";
         const newValue = !toBool(powerState.dataset.value);
         console.log("newValue = " + newValue);
         const stateUri = location.origin + "/api/v1/psu";
-        const response = await WebRequest.patch(stateUri, { "powerState": value });
+        const response = await WebRequest.patch(stateUri, { "powerState": newValue });
         if (response.status === 204) {
             powerButton.classList.replace("btn-success", "btn-danger");
         } else {
