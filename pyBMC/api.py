@@ -65,7 +65,7 @@ async def fan_state(fan_id):
         return build_fan(fan_id)
 
     elif request.method == "PATCH":
-        data = request.get_json()
+        data = await request.get_json()
         new_duty_cycle = data["dutyCycle"]
         if new_duty_cycle < 0 or new_duty_cycle > 100:
             return "Invalid duty cycle", 400
@@ -90,7 +90,7 @@ async def psu_state():
         return build_psu()
 
     elif request.method == "PATCH":
-        data = request.get_json()
+        data = await request.get_json()
         new_state = data["powerState"]
         valid_on_values = [1, True, "on"]
         valid_off_values = [0, False, "off"]
