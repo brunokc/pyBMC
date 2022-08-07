@@ -222,11 +222,11 @@ class Psu:
 
     @property
     def power_switch(self):
-        return self._power_switch.state
+        return self._power_switch
 
     @property
     def power_ok(self):
-        return self._power_ok.state
+        return self._power_ok
 
 class Sensors:
     def __init__(self) -> None:
@@ -281,6 +281,6 @@ class Sensors:
 
         # If power is not on, we need to manually reset the state of the fans
         # as we haven't had a chance to do that since the power was cut
-        if not self.psu.power_switch:
+        if not self.psu.power_switch.state:
             for fan in self.case_fans:
                 fan.reset()

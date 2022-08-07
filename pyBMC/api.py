@@ -28,8 +28,8 @@ def build_temp(index):
 
 def build_psu():
     return {
-        "powerState": sensors.psu.power_switch,
-        "powerOk": sensors.psu.power_ok,
+        "powerState": sensors.psu.power_switch.state,
+        "powerOk": sensors.psu.power_ok.state,
     }
 
 @bp.route("/bmc/info")
@@ -100,6 +100,7 @@ async def psu_state():
         # Convert to boolean
         new_state = (new_state in valid_on_values)
         sensors.psu.power_switch.write(new_state)
+        return "", 204
 
 #
 # Websocket support
