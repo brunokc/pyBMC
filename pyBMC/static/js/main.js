@@ -96,7 +96,8 @@ import WebRequest from "./webrequest.js";
 
         webSocket.addEventListener("open", function (event) {
             document.querySelector(".error-block").style.visibility = "hidden";
-            if (startAutoRefreshOnWebSocketConnection) {
+            const autoRefresh = document.getElementById("auto-refresh-switch");
+            if (autoRefresh.checked && startAutoRefreshOnWebSocketConnection) {
                 startAutoRefreshOnWebSocketConnection = false;
                 startAutoRefresh();
             }
@@ -356,14 +357,40 @@ import WebRequest from "./webrequest.js";
             );
     }
 
+    // async function togglePowerState() {
+    //     const powerState = document.getElementById("power-state");
+    //     const powerButton = document.getElementById("power-button");
+    //     const newValue = !toBool(powerState.dataset.value);
+    //     console.log("newValue = " + newValue);
+    //     const stateUri = location.origin + "/api/v1/psu";
+    //     const response = await WebRequest.patch(stateUri, { "powerState": newValue });
+    //     if (response.status === 204) {
+    //         powerButton.classList.replace("btn-success", "btn-danger");
+    //     } else {
+    //         powerButton.classList.replace("btn-danger", "btn-success");
+    //     }
+
+    //     powerState.dataset.value = newValue;
+    // }
+
+    async function requestSetPowerState(newState) {
+        console.log("requestSetPowerState");
+        await webSocket.send(JSON.stringify({
+            "command": "setPsuPowerState",
+            "args": [
+                newState
+            ]
+        }));
+    }
+
     async function togglePowerState() {
         const powerState = document.getElementById("power-state");
         const powerButton = document.getElementById("power-button");
         const newValue = !toBool(powerState.dataset.value);
         console.log("newValue = " + newValue);
-        const stateUri = location.origin + "/api/v1/psu";
-        const response = await WebRequest.patch(stateUri, { "powerState": newValue });
-        if (response.status === 204) {
+
+        await requestSetPowerState(newValue);
+        if (newValue) {
             powerButton.classList.replace("btn-success", "btn-danger");
         } else {
             powerButton.classList.replace("btn-danger", "btn-success");

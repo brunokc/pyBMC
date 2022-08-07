@@ -106,6 +106,12 @@ async def psu_state():
 # Websocket support
 #
 
+async def set_psu_power_state(new_state):
+    sensors.psu.power_switch.write(new_state)
+    return {
+        "newPowerState": new_state
+    }
+
 async def websocket_send(data):
     try:
         while True:
@@ -119,14 +125,18 @@ async def dispatch_websocket_request(req):
         raise RuntimeError("Invalid websocket request")
 
     cmd = req["command"]
+    args = []
+    if "args" in req:
+        args = req["args"]
     command_map = {
         "getBmcInfo": bmc_info,
         "getBmcStats": bmc_stats,
         "getSystemState": get_state,
+        "setPsuPowerState": set_psu_power_state,
     }
 
     callback = command_map.get(cmd)
-    response_data = await callback()
+    response_data = await callback(*args)
     return {
         "request": cmd,
         "response": response_data
