@@ -145,26 +145,6 @@
           </span>
         </div>
       </div>
-      <!-- <hr>
-      <div>
-        Model: <span class="h6"><span id="model"></span></span>
-      </div>
-      <div>
-        Total Memory: <span class="h6"><span id="totalMem">0</span>MB</span>
-      </div>
-      <div>
-        CPU Temperature:
-        <span class="h6">
-          <span id="cpuTempC">0.0</span>C<i class="bi bi-thermometer-half"></i>
-          (<span id="cpuTempF">0.0</span>F<i class="bi bi-thermometer-half"></i>)
-        </span>
-      </div>
-      <div>
-        Throttled: <span class="h6"><span id="throttled">No</span></span>
-      </div>
-      <div>
-        Uptime: <span class="h6"><span id="uptime"></span></span>
-      </div> -->
     </div>
   </div>
 
@@ -198,19 +178,25 @@
   </div>
 
   <div class="d-flex flex-column rounded shadow-sm mx-2 my-3">
-    <div class="rounded-top p-2 text-white bg-dark bg-gradient">Case Fans</div>
+    <div class="d-flex rounded-top p-2 text-white bg-dark bg-gradient">
+      <span class="flex-grow-1">Case Fans</span>
+      <form class="form-switch me-2 text-nowrap">
+        <input id="sync-speeds-switch" class="form-check-input" type="checkbox" role="switch" checked>
+        <label class="form-check-label" for="sync-speeds-switch">Sync Speeds</label>
+      </form>
+    </div>
     <div class="d-flex flow-row flex-wrap justify-content-evenly p-3">
       {% for fan in sensors.case_fans %}
       <div class="fan-speed-box">
-        {% set fan_id = "fan{}".format(fan.id + 1) %}
-        <div id="{{ fan_id ~ '-text' }}" class="gauge-text text-center"></div>
+        {% set fan_id = "fan{}".format(fan.id) %}
+        <div id="{{ fan_id ~ '-gauge-text' }}" class="gauge-text text-center"></div>
         <canvas id="{{ fan_id ~ '-gauge' }}"></canvas>
         <h5 class="text-center"><i class="bi bi-fan"></i>&nbsp;Fan {{ fan.id + 1 }}</h5>
         <div class="px-5">
           <span id="{{ fan_id ~ '-range' }}" class="fan-speed-control-text">100%</span>
           <label for="{{ fan_id ~ '-speed-control' }}">Power</label>
           <input id="{{ fan_id ~ '-speed-control' }}" type="range" min="0" max="100" value="100"
-            class="form-range fan-speed-control align-middle" data-fan-id="{{ fan.id + 1 }}">
+            class="form-range fan-speed-control align-middle" data-fan-id="{{ fan.id }}">
         </div>
       </div>
       {% endfor %}

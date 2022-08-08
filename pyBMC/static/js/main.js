@@ -52,9 +52,9 @@ import WebRequest from "./webrequest.js";
     let fans = [];
 
     for (var i = 0; i < fanCount; ++i) {
-        var fanId = "fan" + (i + 1);
+        var fanId = "fan" + i;
         var target = document.getElementById(fanId + "-gauge");
-        var target_text = document.getElementById(fanId + "-text");
+        var target_text = document.getElementById(fanId + "-gauge-text");
         let gauge = new Gauge(target).setOptions(opts);
         gauge.setTextField(target_text);
         gauge.maxValue = 3000; // set max gauge value
@@ -107,15 +107,20 @@ import WebRequest from "./webrequest.js";
             const data = JSON.parse(event.data);
             switch (data.request) {
                 case "getBmcInfo":
-                    update_bmc_info(data.response);
+                    updateBmcInfo(data.response);
                     break;
 
                 case "getBmcStats":
-                    update_bmc_stats(data.response);
+                    updateBmcStats(data.response);
                     break;
 
                 case "getSystemState":
-                    update_system_state(data.response);
+                    updateSystemState(data.response);
+                    break;
+
+                case "setPsuPowerState":
+                case "setFanDutyCycle":
+                case "setFansDutyCycle":
                     break;
 
                 default:
@@ -127,13 +132,13 @@ import WebRequest from "./webrequest.js";
 
     createWebSocket();
 
-    async function request_bmc_info() {
+    async function requestBmcInfo() {
         await webSocket.send(JSON.stringify({
-            "command": "getBmcInfo"
+            command: "getBmcInfo"
         }));
     }
 
-    function update_bmc_info(data) {
+    function updateBmcInfo(data) {
         const model = document.getElementById("model");
         model.textContent = data.systemInfo.model;
 
@@ -197,14 +202,14 @@ import WebRequest from "./webrequest.js";
         });
     }
 
-    async function request_bmc_stats() {
-        console.log("request_bmc_stats");
+    async function requestBmcStats() {
+        console.log("requestBmcStats");
         await webSocket.send(JSON.stringify({
-            "command": "getBmcStats"
+            command: "getBmcStats"
         }));
     }
 
-    function update_bmc_stats(data) {
+    function updateBmcStats(data) {
         const cpuTempC = document.getElementById("cpuTempC");
         const cpuTempF = document.getElementById("cpuTempF");
         const tempInF = 32 + data.systemStats.cpuTemp * 9 / 5;
@@ -241,18 +246,23 @@ import WebRequest from "./webrequest.js";
         uptime.textContent = formatUptime(data.systemStats.uptime * 1000);
     }
 
-    async function request_system_state() {
-        console.log("request_system_state");
+    async function requestSystemState() {
+        console.log("requestSystemState");
         await webSocket.send(JSON.stringify({
-            "command": "getSystemState"
+            command: "getSystemState"
         }));
     }
 
-    function update_system_state(state) {
-        for (var i = 0; i < state.fans.length; ++i) {
-            const fan = state.fans[i];
+    function updateSystemState(state) {
+        for (var i = 0; i < state.caseFans.length; ++i) {
+            const fan = state.caseFans[i];
             fans[i].gauge.set(fan.rpm);
             fans[i].power.value = fan.dutyCycle;
+
+            const rangeControl = document.getElementById(`fan${i}-speed-control`);
+            rangeControl.value = fan.dutyCycle;
+            const rangeControlText = document.getElementById(`fan${i}-range`);
+            rangeControlText.textContent = fan.dutyCycle + "%";
         }
 
         const tempC = document.getElementById("tempC");
@@ -295,6 +305,20 @@ import WebRequest from "./webrequest.js";
         }
     }
 
+    async function setFanDutyCycle(fanId, dutyCycle) {
+        await webSocket.send(JSON.stringify({
+            command: "setFanDutyCycle",
+            args: [ fanId, dutyCycle ]
+        }));
+    }
+
+    async function setFansDutyCycle(fanIds, dutyCycle) {
+        await webSocket.send(JSON.stringify({
+            command: "setFansDutyCycle",
+            args: [ fanIds, dutyCycle ]
+        }));
+    }
+
     const speedControls = document.getElementsByClassName("fan-speed-control");
     Array.from(speedControls).forEach((el) => {
         // For some reason, when the fan speed range text changes from 100% (the initial value) to
@@ -308,11 +332,45 @@ import WebRequest from "./webrequest.js";
         box.style.minWidth = box.clientWidth + "px";
 
         el.addEventListener("input", (event) => {
+            const syncSpeeds = document.getElementById("sync-speeds-switch");
             const fanId = el.dataset.fanId;
             const rangeControlId = `fan${fanId}-range`;
             const rangeControl = document.getElementById(rangeControlId);
             rangeControl.textContent = el.value + "%";
+            if (syncSpeeds.checked) {
+                // All fans Ids from 0 to count
+                const allFans = [...Array(fanCount).keys()];
+                setFansDutyCycle(allFans, parseInt(el.value));
+
+                for (const fanId in allFans) {
+                    const rangeControl = document.getElementById(`fan${fanId}-speed-control`);
+                    rangeControl.value = el.value;
+                    const rangeControlText = document.getElementById(`fan${fanId}-range`);
+                    rangeControlText.textContent = el.value + "%";
+                }
+            } else {
+                const rangeControl = document.getElementById(rangeControlId);
+                rangeControl.textContent = el.value + "%";
+                setFanDutyCycle(parseInt(el.dataset.fanId), parseInt(el.value));
+            }
         });
+    });
+
+    const syncSpeeds = document.getElementById("sync-speeds-switch");
+    syncSpeeds.addEventListener("click", function (event) {
+        if (event.target.checked) {
+            // Sync all fans to the first one
+            const fan0dutyCycle = document.getElementById(`fan0-speed-control`).value;
+            for (let i = 0; i < fanCount; i++) {
+                if (i != 0) {
+                    const rangeControl = document.getElementById(`fan${i}-speed-control`);
+                    rangeControl.value = fan0dutyCycle;
+                    const rangeControlText = document.getElementById(`fan${i}-range`);
+                    rangeControlText.textContent = fan0dutyCycle + "%";
+                    setFanDutyCycle(i, parseInt(fan0dutyCycle));
+                }
+            }
+        }
     });
 
     const autoRefresh = document.getElementById("auto-refresh-switch");
@@ -320,11 +378,11 @@ import WebRequest from "./webrequest.js";
     let fanIntervalToken = null;
     function startAutoRefresh() {
         setTimeout(() => {
-            request_bmc_info();
-            request_bmc_stats();
-            request_system_state();
-            bmcIntervalToken = setInterval(request_bmc_stats, 1000);
-            fanIntervalToken = setInterval(request_system_state, 250);
+            requestBmcInfo();
+            requestBmcStats();
+            requestSystemState();
+            bmcIntervalToken = setInterval(requestBmcStats, 1000);
+            fanIntervalToken = setInterval(requestSystemState, 250);
         }, 600);
     }
 
@@ -376,10 +434,8 @@ import WebRequest from "./webrequest.js";
     async function requestSetPowerState(newState) {
         console.log("requestSetPowerState");
         await webSocket.send(JSON.stringify({
-            "command": "setPsuPowerState",
-            "args": [
-                newState
-            ]
+            command: "setPsuPowerState",
+            args: [ newState ]
         }));
     }
 
@@ -387,7 +443,6 @@ import WebRequest from "./webrequest.js";
         const powerState = document.getElementById("power-state");
         const powerButton = document.getElementById("power-button");
         const newValue = !toBool(powerState.dataset.value);
-        console.log("newValue = " + newValue);
 
         await requestSetPowerState(newValue);
         if (newValue) {

@@ -50,15 +50,15 @@ async def get_state():
         fan_data.append(build_fan(i))
 
     data.update({
-        "fans": fan_data,
+        "caseFans": fan_data,
         "tempSensor": build_temp(0),
         "psu": build_psu()
     })
     return data
 
-@bp.route("/fan/<int:fan_id>", methods=["GET", "PATCH"])
+@bp.route("/fans/<int:fan_id>", methods=["GET", "PATCH"])
 async def fan_state(fan_id):
-    if fan_id < 0 or fan_id >= len(sensors.fans):
+    if fan_id < 0 or fan_id >= len(sensors.case_fans):
         return "Fan not found", 404
 
     if request.method == "GET":
@@ -70,7 +70,7 @@ async def fan_state(fan_id):
         if new_duty_cycle < 0 or new_duty_cycle > 100:
             return "Invalid duty cycle", 400
 
-        fan = sensors.fans[fan_id]
+        fan = sensors.case_fans[fan_id]
         fan.set_speed(new_duty_cycle)
         return "", 204
 
@@ -112,6 +112,52 @@ async def set_psu_power_state(new_state):
         "newPowerState": new_state
     }
 
+async def set_fan_duty_cycle(fan_id, duty_cycle):
+    fan_id = int(fan_id)
+    if fan_id < 0 or fan_id >= len(sensors.case_fans):
+        return {
+            "fanId": fan_id,
+            "message": "Fan not found"
+        }
+
+    duty_cycle = int(duty_cycle)
+    if duty_cycle < 0 or duty_cycle > 100:
+        return {
+            "message": "Invalid duty cycle"
+        }
+
+    fan = sensors.case_fans[fan_id]
+    fan.set_speed(duty_cycle)
+    return {
+        "fanId": fan_id,
+        "newDutyCycle": duty_cycle
+    }
+
+async def set_fans_duty_cycle(fan_ids, duty_cycle):
+    for fan_id in fan_ids:
+        fan_id = int(fan_id)
+        if fan_id < 0 or fan_id >= len(sensors.case_fans):
+            return {
+                "fanId": fan_id,
+                "message": "Fan not found"
+            }
+
+    duty_cycle = int(duty_cycle)
+    if duty_cycle < 0 or duty_cycle > 100:
+        return {
+            "message": "Invalid duty cycle"
+        }
+
+    for fan_id in fan_ids:
+        fan_id = int(fan_id)
+        fan = sensors.case_fans[fan_id]
+        fan.set_speed(duty_cycle)
+
+    return {
+        "fanIds": fan_ids,
+        "newDutyCycle": duty_cycle
+    }
+
 async def websocket_send(data):
     try:
         while True:
@@ -133,6 +179,8 @@ async def dispatch_websocket_request(req):
         "getBmcStats": bmc_stats,
         "getSystemState": get_state,
         "setPsuPowerState": set_psu_power_state,
+        "setFanDutyCycle": set_fan_duty_cycle,
+        "setFansDutyCycle": set_fans_duty_cycle,
     }
 
     callback = command_map.get(cmd)
