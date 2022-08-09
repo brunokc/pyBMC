@@ -41,4 +41,4 @@ sudo systemctl start pybmc
 
 source /etc/default/pybmc
 echo Done.
-echo App should be running on ${BIND_HOST}:${BIND_POST}
+echo App running with bindings ${BIND_HOST}:${BIND_PORT}
