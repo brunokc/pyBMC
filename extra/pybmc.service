@@ -1,0 +1,13 @@
+[Unit]
+Description=pyBMC Application
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/pybmc
+Restart=on-failure
+ExecStart=
+
+[Install]
+WantedBy=multi-user.target

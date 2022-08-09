@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#
 
 set -x
 
@@ -14,7 +15,7 @@ mv pyBMC-${branch} ${curdir}/pyBMC
 cd ${curdir}/pyBMC
 rm -r $tmpdir
 
-echo Installing Python dependencies...
+echo Installing pyBMC dependencies...
 sudo apt-get -y install python3-venv pigpiod
 
 echo Configuring pigpiod...
@@ -25,6 +26,19 @@ echo Creating Python virtual environment and activating it...
 python -m venv venv
 source venv/bin/activate
 
-echo Installing pyBMC dependencies...
+echo Installing pyBMC Python dependencies...
 pip install --upgrade pip
 pip install -r requirements.txt
+
+echo Installing systemd files...
+cp extra/pybmc.service /etc/systemd/system
+cp extra/pybmc /etc/default
+sudo systemctl daemon-reload
+sudo systemctl enable pybmc
+
+echo Starting pyBMC...
+sudo systemctl start pybmc
+
+source /etc/default/pybmc
+echo Done.
+echo App should be running on ${BIND_HOST}:${BIND_POST}
