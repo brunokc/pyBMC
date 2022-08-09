@@ -31,8 +31,8 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 echo Installing systemd files...
-cp extra/pybmc.service /etc/systemd/system
-cp extra/pybmc /etc/default
+sudo cp extra/pybmc.service /etc/systemd/system
+sudo cp extra/pybmc /etc/default
 sudo systemctl daemon-reload
 sudo systemctl enable pybmc
 
