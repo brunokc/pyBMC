@@ -7,12 +7,12 @@ branch=${1:-main}
 
 echo Downloading pyBMC...
 tmpdir=`mktemp -d`
-curdir=$PWD
+basedir=$PWD
 cd $tmpdir
 curl -sL -o pybmc.zip https://github.com/brunokc/pyBMC/archive/${branch}.zip
 unzip -q pybmc.zip
-mv pyBMC-${branch} ${curdir}/pyBMC
-cd ${curdir}/pyBMC
+mv pyBMC-${branch} ${basedir}/pyBMC
+cd ${basedir}/pyBMC
 rm -r $tmpdir
 
 echo Installing pyBMC dependencies...
