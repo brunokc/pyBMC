@@ -4,15 +4,17 @@
 set -x
 
 branch=${1:-main}
+install_path=/var/www/pyBMC
 
-echo Downloading pyBMC...
+echo Downloading latest pyBMC...
 tmpdir=`mktemp -d`
 basedir=$PWD
 cd $tmpdir
 curl -sL -o pybmc.zip https://github.com/brunokc/pyBMC/archive/${branch}.zip
 unzip -q pybmc.zip
-mv pyBMC-${branch} ${basedir}/pyBMC
-cd ${basedir}/pyBMC
+mkdir -p ${install_path}
+mv pyBMC-${branch} ${install_path}
+cd ${install_path}
 rm -r $tmpdir
 
 echo Installing pyBMC dependencies...
@@ -41,4 +43,4 @@ sudo systemctl start pybmc
 
 source /etc/default/pybmc
 echo Done.
-echo App running with bindings ${BIND_HOST}:${BIND_PORT}
+echo PyBMC running on ${BIND_HOST}:${BIND_PORT}
