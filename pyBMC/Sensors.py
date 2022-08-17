@@ -208,9 +208,9 @@ class PsuPin:
 
 
 class Psu:
-    def __init__(self, pi) -> None:
-        self._power_switch = PsuPin("ps_switch", pi, 25, pigpio.OUTPUT)
-        self._power_ok = PsuPin("ps_ok", pi, 27, pigpio.INPUT)
+    def __init__(self, pi, power_switch_pin, power_ok_pin) -> None:
+        self._power_switch = PsuPin("ps_switch", pi, power_switch_pin, pigpio.OUTPUT)
+        self._power_ok = PsuPin("ps_ok", pi, power_ok_pin, pigpio.INPUT)
 
     def update_state(self):
         self._power_switch.update_state()
@@ -259,8 +259,8 @@ class Sensors:
             fan = Fan(id, name, self._pi, rpm_pin, pwm_pin, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION)
             self.case_fans.append(fan)
 
-        self.temp = TempHumiditySensor("temp1", self._pi, 21)
-        self.psu = Psu(self._pi)
+        self.temp = TempHumiditySensor("temp0", self._pi, 21)
+        self.psu = Psu(self._pi, power_switch_pin = 25, power_ok_pin = 27)
 
     def stop(self):
         self.psu.stop()
