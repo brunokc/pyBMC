@@ -7,7 +7,9 @@ After=network-online.target
 Type=simple
 EnvironmentFile=/etc/default/pybmc
 Restart=on-failure
-ExecStart=
+WorkingDirectory=/var/www/pyBMC
+User=pybmc
+ExecStart=/var/www/pyBMC/venv/bin/hypercorn --bind ${BIND_HOST}:${BIND_PORT} "pyBMC:create_app()"
 
 [Install]
 WantedBy=multi-user.target
