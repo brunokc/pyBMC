@@ -166,6 +166,15 @@ async def websocket_send(data):
         # Handle disconnection here
         raise
 
+websocket_command_map = {
+    "getBmcInfo": bmc_info,
+    "getBmcStats": bmc_stats,
+    "getSystemState": get_state,
+    "setPsuPowerState": set_psu_power_state,
+    "setFanDutyCycle": set_fan_duty_cycle,
+    "setFansDutyCycle": set_fans_duty_cycle,
+}
+
 async def dispatch_websocket_request(req):
     if "command" not in req or not req["command"]:
         raise RuntimeError("Invalid websocket request")
@@ -174,16 +183,8 @@ async def dispatch_websocket_request(req):
     args = []
     if "args" in req:
         args = req["args"]
-    command_map = {
-        "getBmcInfo": bmc_info,
-        "getBmcStats": bmc_stats,
-        "getSystemState": get_state,
-        "setPsuPowerState": set_psu_power_state,
-        "setFanDutyCycle": set_fan_duty_cycle,
-        "setFansDutyCycle": set_fans_duty_cycle,
-    }
 
-    callback = command_map.get(cmd)
+    callback = websocket_command_map.get(cmd)
     response_data = await callback(*args)
     return {
         "request": cmd,
