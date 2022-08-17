@@ -2,9 +2,9 @@
 from quart import Blueprint, request, websocket
 import asyncio
 import json
-from . import Sensors, rpi
+from . import sensors, rpi
 
-sensors = Sensors.Sensors()
+sensors = sensors.Sensors()
 
 bp = Blueprint("api", __name__, url_prefix="/api/v1")
 
