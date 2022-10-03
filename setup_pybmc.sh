@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
 
-set -x
+if [ "$1" = "-x" ]; then
+    set -x
+fi
 
 branch=${1:-main}
 install_path=/var/www/pyBMC
