@@ -267,8 +267,9 @@ import WebRequest from "./webrequest.js";
 
         const tempC = document.getElementById("tempC");
         const tempF = document.getElementById("tempF");
-        const tempInF = 32 + state.tempSensor.temperatureC * 9 / 5;
-        tempC.textContent = state.tempSensor.temperatureC.toFixed(1);
+        const tempInC = state.tempSensor.temperatureC;
+        tempC.textContent = tempInC.toFixed(1);
+        const tempInF = 32 + tempInC * 9 / 5;
         tempF.textContent = tempInF.toFixed(1);
 
         const humidity = document.getElementById("humidity");
@@ -282,14 +283,23 @@ import WebRequest from "./webrequest.js";
             powerState.classList.add("text-success");
             powerButton.classList.replace("btn-success", "btn-danger");
         } else {
-            powerState.textContent = "Off";
-            powerState.dataset.value = false;
-            powerState.classList.remove("text-success");
-            powerButton.classList.replace("btn-danger", "btn-success");
+            if (state.psu.powerOk) {
+                powerState.textContent = "On (externally switched)";
+                powerState.dataset.value = true;
+                powerState.classList.add("text-success");
+                powerButton.classList.replace("btn-success", "btn-danger");
+                powerButton.classList.add("disabled");
+            } else {
+                powerState.textContent = "Off";
+                powerState.dataset.value = false;
+                powerState.classList.remove("text-success");
+                powerButton.classList.replace("btn-danger", "btn-success");
+                powerButton.classList.remove("disabled");
+            }
         }
 
         const powerOk = document.getElementById("power-ok");
-        if (state.psu.powerState && state.psu.powerOk) {
+        if (state.psu.powerOk) {
             powerOk.textContent = "Yes";
             powerOk.classList.remove("text-danger");
             powerOk.classList.add("text-success");

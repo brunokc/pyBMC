@@ -281,6 +281,6 @@ class Sensors:
 
         # If power is not on, we need to manually reset the state of the fans
         # as we haven't had a chance to do that since the power was cut
-        if not self.psu.power_switch.state:
+        if not self.psu.power_switch.state and not self.psu.power_ok.state:
             for fan in self.case_fans:
                 fan.reset()
