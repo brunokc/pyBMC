@@ -7,13 +7,10 @@
 #
 
 import pigpio
+import yaml
 from . import DHT22, logger
 
-# Noctua specifies 25Khz frequency for PWM control.
-# For RPM reading, it says there's two pulses per rotation
-# (https://noctua.at/pub/media/wysiwyg/Noctua_PWM_specifications_white_paper.pdf)
-PWM_FREQUENCY = 25000
-PULSES_PER_REVOLUTION = 2
+HARDWARE_CONFIG_FILE = "pybmc.hardware.conf"
 
 class RpmPin:
     def __init__(self, pi, pin, weighting=0.0, pulses_per_rev=1) -> None:
@@ -75,13 +72,13 @@ class RpmPin:
 
 
 class PwmPin:
-    def __init__(self, pi, pin) -> None:
+    def __init__(self, pi, pin, pwm_frequency) -> None:
         self._pi = pi
         self._pin = pin
         self._duty_cycle = 100
 
         self._pi.set_mode(self._pin, pigpio.OUTPUT)
-        self._pi.set_PWM_frequency(self._pin, PWM_FREQUENCY)
+        self._pi.set_PWM_frequency(self._pin, pwm_frequency)
         self._pi.set_PWM_range(self._pin, 100)
         self._pi.set_PWM_dutycycle(self._pin, self._duty_cycle)
 
@@ -98,7 +95,7 @@ class PwmPin:
 
 
 class Fan:
-    def __init__(self, id, name, pi, rpm_pin, pwm_pin, weighting=0.0, pulses_per_rev=1) -> None:
+    def __init__(self, id, name, pi, rpm_pin, pwm_pin, pwm_frequency, weighting=0.0, pulses_per_rev=1) -> None:
         self.id = id
         self.name = name
 
@@ -107,7 +104,7 @@ class Fan:
         self.rpm_pin = RpmPin(pi, rpm_pin, weighting, pulses_per_rev)
 
         logger.log(f"   PWM pin: {pwm_pin}")
-        self.pwm_pin = PwmPin(pi, pwm_pin)
+        self.pwm_pin = PwmPin(pi, pwm_pin, pwm_frequency)
 
     def stop(self):
         self.rpm_pin.stop()
@@ -232,35 +229,34 @@ class Sensors:
     def __init__(self) -> None:
         self._pi = pigpio.pi()
 
-        case_fans_data = [
-            {
-                "id": 0,
-                "rpm_pin": 18,
-                "pwm_pin": 17
-            },
-            {
-                "id": 1,
-                "rpm_pin": 23,
-                "pwm_pin": 24
-            },
-            {
-                "id": 2,
-                "rpm_pin": 16,
-                "pwm_pin": 20
-            },
-        ]
+        with open(HARDWARE_CONFIG_FILE, "r") as config_file:
+            hwconfig = yaml.safe_load(config_file)
+
+        fan_settings = hwconfig["pybmc"]["fans"]["settings"]
+        pulses_per_revolution = fan_settings["pulses-per-revolution"]
+        pwm_frequency = fan_settings["pwm-frequency"]
+        weighting = fan_settings["weighting"]
 
         self.case_fans = []
-        for fan_data in case_fans_data:
-            id = fan_data["id"]
-            name = f"fan{id}"
-            rpm_pin = fan_data["rpm_pin"]
-            pwm_pin = fan_data["pwm_pin"]
-            fan = Fan(id, name, self._pi, rpm_pin, pwm_pin, weighting=0.25, pulses_per_rev=PULSES_PER_REVOLUTION)
+        fan_id = 0
+        for fan_data in hwconfig["pybmc"]["fans"]["case-fans"]:
+            name = fan_data["name"]
+            rpm_pin = fan_data["rpm-pin"]
+            pwm_pin = fan_data["pwm-pin"]
+            fan = Fan(fan_id, name, self._pi, rpm_pin, pwm_pin, weighting, pulses_per_revolution, pwm_frequency)
             self.case_fans.append(fan)
+            fan_id += 1
 
-        self.temp = TempHumiditySensor("temp0", self._pi, 21)
-        self.psu = Psu(self._pi, power_switch_pin = 25, power_ok_pin = 27)
+        # We only support a single temp/humidity sensor for now
+        temp_data = hwconfig["pybmc"]["temp-sensors"]
+        name = temp_data[0]["name"]
+        pin = temp_data[0]["pin"]
+        self.temp = TempHumiditySensor(name, self._pi, pin)
+
+        psu_data = hwconfig["pybmc"]["psu"]
+        power_switch_pin = psu_data["power-switch-pin"]
+        power_ok_pin = psu_data["power-ok-pin"]
+        self.psu = Psu(self._pi, power_switch_pin, power_ok_pin)
 
     def stop(self):
         self.psu.stop()
@@ -280,7 +276,9 @@ class Sensors:
         self.psu.update_state()
 
         # If power is not on, we need to manually reset the state of the fans
-        # as we haven't had a chance to do that since the power was cut
+        # as we haven't had a chance to do that since the power was cut.
+        # Also, if power ok is set while power switch is off, that means the
+        # power was externally switched, so don't reset the fans in that case.
         if not self.psu.power_switch.state and not self.psu.power_ok.state:
             for fan in self.case_fans:
                 fan.reset()
