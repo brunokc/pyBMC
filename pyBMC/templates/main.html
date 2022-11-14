@@ -181,7 +181,8 @@
     <div class="d-flex rounded-top p-2 text-white bg-dark bg-gradient">
       <span class="flex-grow-1">Case Fans</span>
       <form class="form-switch me-2 text-nowrap">
-        <input id="sync-speeds-switch" class="form-check-input" type="checkbox" role="switch" checked>
+        <input id="sync-speeds-switch" class="form-check-input" type="checkbox"
+               role="switch" {{ "checked" if sensors.sync_fans_speeds else "" }}>
         <label class="form-check-label" for="sync-speeds-switch">Sync Speeds</label>
       </form>
     </div>

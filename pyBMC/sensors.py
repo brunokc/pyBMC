@@ -10,6 +10,7 @@ import pigpio
 import yaml
 from . import DHT22, logger
 
+CONFIG_FILE = "pybmc.conf"
 HARDWARE_CONFIG_FILE = "pybmc.hardware.conf"
 
 class RpmPin:
@@ -225,17 +226,26 @@ class Psu:
     def power_ok(self):
         return self._power_ok
 
+
+def load_config(file_path):
+    with open(file_path, "r") as config_file:
+        return yaml.safe_load(config_file)
+
+
 class Sensors:
     def __init__(self) -> None:
         self._pi = pigpio.pi()
 
-        with open(HARDWARE_CONFIG_FILE, "r") as config_file:
-            hwconfig = yaml.safe_load(config_file)
-
+        hwconfig = load_config(HARDWARE_CONFIG_FILE)
         fan_settings = hwconfig["pybmc"]["fans"]["settings"]
         pulses_per_revolution = fan_settings["pulses-per-revolution"]
         pwm_frequency = fan_settings["pwm-frequency"]
         weighting = fan_settings["weighting"]
+
+        swconfig = load_config(CONFIG_FILE)
+        fan_config = swconfig["pybmc"]["fans"]
+        default_fan_speed = fan_config["default-speed"]
+        self.sync_fans_speeds = fan_config["sync-speeds"]
 
         self.case_fans = []
         fan_id = 0
@@ -244,6 +254,7 @@ class Sensors:
             rpm_pin = fan_data["rpm-pin"]
             pwm_pin = fan_data["pwm-pin"]
             fan = Fan(fan_id, name, self._pi, rpm_pin, pwm_pin, weighting, pulses_per_revolution, pwm_frequency)
+            fan.set_speed(default_fan_speed)
             self.case_fans.append(fan)
             fan_id += 1
 
